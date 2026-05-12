@@ -1,14 +1,14 @@
 const sql = require('mssql');
 
 const dbConfig = {
-  user: 'breaksense_user',
-  password: 'Break123!',
-  server: 'ANNSTHORNS',
-  database: 'BreakSenseDB',
+  user: process.env.DB_USER || 'breaksense_user',
+  password: process.env.DB_PASSWORD || 'Break123!',
+  server: process.env.DB_SERVER || 'ANNSTHORNS',
+  database: process.env.DB_NAME || 'BreakSenseDB',
   options: {
     encrypt: true,
     trustServerCertificate: true,
-    port: 1433
+    port: parseInt(process.env.DB_PORT) || 1433
   }
 };
 

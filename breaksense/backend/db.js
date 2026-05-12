@@ -1,27 +1,14 @@
-const sql = require('mssql');
+const mysql = require('mysql2/promise');
 
-const dbConfig = {
-  user: process.env.DB_USER || 'breaksense_user',
-  password: process.env.DB_PASSWORD || 'Break123!',
-  server: process.env.DB_SERVER || 'ANNSTHORNS',
-  database: process.env.DB_NAME || 'BreakSenseDB',
-  options: {
-    encrypt: true,
-    trustServerCertificate: true,
-    port: parseInt(process.env.DB_PORT) || 1433
-  }
-};
+const pool = mysql.createPool({
+  host: process.env.MYSQLHOST || 'localhost',
+  user: process.env.MYSQLUSER || 'root',
+  password: process.env.MYSQLPASSWORD || '',
+  database: process.env.MYSQLDATABASE || 'breaksense',
+  port: process.env.MYSQLPORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-const poolPromise = new sql.ConnectionPool(dbConfig)
-    .connect()
-    .then(pool => {
-        console.log('✅ Connected to SSMS using SQL Login: breaksense_user');
-        return pool;
-    })
-    .catch(err => {
-        console.error('❌ Database Connection Failed!', err);
-        // Throw the error so poolPromise rejects rather than resolving to undefined
-        throw err;
-    });
-
-module.exports = { sql, poolPromise };
+module.exports = pool;

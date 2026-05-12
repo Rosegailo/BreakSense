@@ -1,26 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-
-// 1. IMPORT poolPromise and sql from your db.js file
-const { sql, poolPromise } = require('../db'); 
+const pool = require('../db');
 
 // SIGN UP ROUTE
 router.post('/signup', async (req, res) => {
     try {
         const { firstName, lastName, email, password } = req.body; 
         
+        // --- STRONG PASSWORD VALIDATION ---
+        const minLength = 8;
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        const hasUpper = /[A-Z]/.test(password);
+
+        if (password.length < minLength || !hasNumber || !hasSpecial || !hasUpper) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character."
+            });
+        }
+        // ----------------------------------
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 2. WAIT FOR THE POOL instead of calling sql.connect()
-        const pool = await poolPromise; 
-        await pool.request()
-            .input('firstName', sql.NVarChar, firstName)
-            .input('lastName', sql.NVarChar, lastName)
-            .input('email', sql.NVarChar, email)
-            .input('password', sql.NVarChar, hashedPassword)
-            .query('INSERT INTO users (first_name, last_name, email, password) VALUES (@firstName, @lastName, @email, @password)');
+        await pool.query(
+            'INSERT INTO users (first_name, last_name, email, password) VALUES (?, ?, ?, ?)',
+            [firstName, lastName, email, hashedPassword]
+        );
 
         res.json({ success: true, message: "User registered" });
     } catch (err) {
@@ -34,12 +42,8 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const pool = await poolPromise;
-        const result = await pool.request()
-            .input('email', sql.NVarChar, email)
-            .query('SELECT * FROM users WHERE email = @email');
-
-        const user = result.recordset[0];
+        const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        const user = rows[0];
 
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -61,6 +65,7 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (err) {
+        console.error("LOGIN ERROR:", err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 });
@@ -69,13 +74,11 @@ router.post('/login', async (req, res) => {
 router.put('/update-profile', async (req, res) => {
     try {
         const { userId, firstName, lastName } = req.body;
-        const pool = await poolPromise;
 
-        await pool.request()
-            .input('userId', sql.Int, userId)
-            .input('firstName', sql.NVarChar, firstName)
-            .input('lastName', sql.NVarChar, lastName)
-            .query('UPDATE users SET first_name = @firstName, last_name = @lastName WHERE id = @userId');
+        await pool.query(
+            'UPDATE users SET first_name = ?, last_name = ? WHERE id = ?',
+            [firstName, lastName, userId]
+        );
 
         res.json({ success: true, message: "Profile updated successfully." });
     } catch (err) {
@@ -86,41 +89,32 @@ router.put('/update-profile', async (req, res) => {
 
 // RESET ACCOUNT ROUTE
 router.delete('/reset-account/:userId', async (req, res) => {
+    const connection = await pool.getConnection();
     try {
         const { userId } = req.params;
-        const pool = await poolPromise;
+        await connection.beginTransaction();
 
-        // Start a transaction to ensure both deletions happen together
-        const transaction = new sql.Transaction(pool);
-        await transaction.begin();
+        // 1. Delete all history from breaks_history
+        await connection.query('DELETE FROM breaks_history WHERE user_id = ?', [userId]);
 
-        try {
-            // 1. Delete all history from breaks_history (using correct table and column name)
-            await transaction.request()
-                .input('userId', sql.Int, userId)
-                .query('DELETE FROM breaks_history WHERE user_id = @userId');
+        // 2. Reset study statistics in the users table
+        await connection.query(`
+            UPDATE users
+            SET SessionsToday = 0,
+                TotalStudyTimeToday = 0,
+                DayStreak = 0,
+                LastStudyDate = NULL
+            WHERE id = ?
+        `, [userId]);
 
-            // 2. Reset study statistics in the users table
-            await transaction.request()
-                .input('userId', sql.Int, userId)
-                .query(`
-                    UPDATE users
-                    SET SessionsToday = 0,
-                        TotalStudyTimeToday = 0,
-                        DayStreak = 0,
-                        LastStudyDate = NULL
-                    WHERE id = @userId
-                `);
-
-            await transaction.commit();
-            res.json({ success: true, message: "Account data cleared successfully." });
-        } catch (err) {
-            await transaction.rollback();
-            throw err;
-        }
+        await connection.commit();
+        res.json({ success: true, message: "Account data cleared successfully." });
     } catch (err) {
+        await connection.rollback();
         console.error("Reset Error:", err.message);
         res.status(500).json({ success: false, message: err.message });
+    } finally {
+        connection.release();
     }
 });
 

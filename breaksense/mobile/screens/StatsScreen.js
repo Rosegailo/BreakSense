@@ -73,6 +73,7 @@ export default function StatsScreen({ navigation }) {
     if (cat.includes('mind')) return '#a855f7';
     if (cat.includes('nutrition')) return '#fbbf24';
     if (cat.includes('rest')) return '#60a5fa';
+    if (cat.includes('focus')) return '#10b981'; // Green for focus time
     return colors.accent;
   };
 
@@ -90,47 +91,58 @@ export default function StatsScreen({ navigation }) {
 
   const renderLogItem = ({ item }) => {
     const catColor = getCategoryColor(item.category);
+    const isFocusTime = item.category?.toLowerCase() === 'focus time';
 
     return (
       <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.logHeader}>
           <Text style={styles.dateText}>{formatDateTime(item.createdAt)}</Text>
-          <View style={styles.starsRow}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Ionicons
-                key={i}
-                name="star"
-                size={12}
-                color={i < item.rating ? '#fbbf24' : '#334155'}
-                style={{ marginLeft: 2 }}
-              />
-            ))}
-          </View>
+          {!isFocusTime && (
+            <View style={styles.starsRow}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Ionicons
+                  key={i}
+                  name="star"
+                  size={12}
+                  color={i < item.rating ? '#fbbf24' : '#334155'}
+                  style={{ marginLeft: 2 }}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
-        {item.session_number && (
+        {!isFocusTime && item.session_number && (
           <View style={styles.sessionRow}>
             <Text style={styles.sessionEmoji}>🍅</Text>
             <Text style={styles.sessionText}>After Session {item.session_number}</Text>
           </View>
         )}
 
-        <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>{item.break_type}</Text>
+        <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>
+          {isFocusTime && item.session_number
+            ? `Study Session ${item.session_number}`
+            : item.break_type}
+        </Text>
 
         <View style={styles.tagContainer}>
           <View style={[styles.catTag, { backgroundColor: catColor + '20' }]}>
             <Text style={[styles.catTagText, { color: catColor }]}>{item.category?.toLowerCase()}</Text>
           </View>
 
-          <View style={[styles.infoTag, { backgroundColor: colors.background }]}>
-            <Text style={styles.infoEmoji}>😴</Text>
-            <Text style={styles.infoTagText}>F {getFatigueText(item.fatigue_before)}</Text>
-          </View>
+          {!isFocusTime && (
+            <>
+              <View style={[styles.infoTag, { backgroundColor: colors.background }]}>
+                <Text style={styles.infoEmoji}>😴</Text>
+                <Text style={styles.infoTagText}>F {getFatigueText(item.fatigue_before)}</Text>
+              </View>
 
-          <View style={[styles.infoTag, { backgroundColor: colors.background }]}>
-            <Text style={styles.infoEmoji}>😤</Text>
-            <Text style={styles.infoTagText}>S {getStressText(item.stress_before)}</Text>
-          </View>
+              <View style={[styles.infoTag, { backgroundColor: colors.background }]}>
+                <Text style={styles.infoEmoji}>😤</Text>
+                <Text style={styles.infoTagText}>S {getStressText(item.stress_before)}</Text>
+              </View>
+            </>
+          )}
 
           <View style={[styles.infoTag, { backgroundColor: colors.background }]}>
             <Ionicons name="time-outline" size={12} color="#64748b" style={{ marginRight: 4 }} />
@@ -151,9 +163,8 @@ export default function StatsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-<Header />
-<View style={[styles.container, { backgroundColor: colors.background }]}>
-
+      <Header />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.topBar}>
           <View style={styles.header}>
             <Text style={[styles.mainTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
@@ -202,7 +213,6 @@ const styles = StyleSheet.create({
   mainTitle: { fontSize: 25, fontWeight: '900' },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#64748b', fontSize: 14, marginTop: 4 },
-  clearText: { color: '#64748b', fontSize: 14, fontWeight: '600', marginTop: 15 },
 
   logCard: { 
     borderRadius: 24,

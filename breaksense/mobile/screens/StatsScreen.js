@@ -120,8 +120,8 @@ export default function StatsScreen({ navigation }) {
         )}
 
         <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>
-          {isFocusTime && item.session_number
-            ? `Study Session ${item.session_number}`
+          {isFocusTime
+            ? `Study Session ${item.session_number || ''}`
             : item.break_type}
         </Text>
 

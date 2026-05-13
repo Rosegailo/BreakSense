@@ -21,7 +21,7 @@ export default function StudyTimerScreen({ navigation }) {
     totalSessions, setTotalSessions,
     startTimer, stopTimer, resetTimer,
     timerComplete, setTimerComplete,
-    stopRingtone, advanceSession
+    stopRingtone, advanceSession, reloadSettings
   } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);

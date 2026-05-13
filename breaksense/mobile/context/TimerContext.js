@@ -25,7 +25,7 @@ export const TimerProvider = ({ children }) => {
       }
       const { sound } = await Audio.Sound.createAsync(
         require('../assets/sounds/alarm.mp3'),
-        { shouldPlay: true }
+        { shouldPlay: true, isLooping: true }
       );
       soundRef.current = sound;
     } catch (error) {
@@ -37,6 +37,8 @@ export const TimerProvider = ({ children }) => {
     try {
       if (soundRef.current) {
         await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
       }
     } catch (error) {
       console.log('Error stopping sound:', error);
@@ -70,36 +72,39 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
-  // Improved Timer Logic
+  // Simplified and Robust Timer Logic
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
-        setSeconds(prevSec => {
-          if (prevSec > 0) return prevSec - 1;
+        setSeconds(prevSeconds => {
+          if (prevSeconds > 0) {
+            return prevSeconds - 1;
+          } else {
+            // Seconds is 0, check minutes
+            let currentMinutes;
+            setMinutes(prevMinutes => {
+              currentMinutes = prevMinutes;
+              if (prevMinutes > 0) return prevMinutes - 1;
+              return 0;
+            });
 
-          // Seconds is 0, check minutes
-          let shouldStop = false;
-          setMinutes(prevMin => {
-            if (prevMin > 0) return prevMin - 1;
-            shouldStop = true;
-            return 0;
-          });
-
-          if (shouldStop) {
-            clearInterval(timerRef.current);
-            setIsRunning(false);
-            playRingtone();
-            saveStudyLog(sessionDuration);
-            setTimerComplete(true);
-            return 0;
+            // If minutes was already 0 when seconds hit 0, timer is done
+            if (currentMinutes === 0) {
+              clearInterval(timerRef.current);
+              setIsRunning(false);
+              playRingtone();
+              saveStudyLog(sessionDuration);
+              setTimerComplete(true);
+              return 0;
+            }
+            return 59;
           }
-
-          return 59;
         });
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -111,31 +116,31 @@ export const TimerProvider = ({ children }) => {
   };
 
   const stopTimer = async () => {
-    if (isRunning) {
-      const totalSecondsPossible = sessionDuration * 60;
-      const secondsRemaining = (minutes * 60) + seconds;
-      const secondsSpent = totalSecondsPossible - secondsRemaining;
-      const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
+    const totalSecondsPossible = sessionDuration * 60;
+    const secondsRemaining = (minutes * 60) + seconds;
+    const secondsSpent = totalSecondsPossible - secondsRemaining;
+    const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
 
-      setIsRunning(false);
-      await saveStudyLog(timeSpentMinutes);
+    setIsRunning(false);
+    if (timerRef.current) clearInterval(timerRef.current);
 
-      // Reset timer state but advance session
-      if (currentSession < totalSessions) {
-        setCurrentSession(prev => prev + 1);
-      } else {
-        setCurrentSession(1);
-      }
-      setMinutes(sessionDuration);
-      setSeconds(0);
+    await saveStudyLog(timeSpentMinutes);
 
-      return timeSpentMinutes;
+    // Prepare for next session
+    if (currentSession < totalSessions) {
+      setCurrentSession(prev => prev + 1);
+    } else {
+      setCurrentSession(1);
     }
-    return 0;
+    setMinutes(sessionDuration);
+    setSeconds(0);
+
+    return timeSpentMinutes;
   };
 
   const resetTimer = () => {
     setIsRunning(false);
+    if (timerRef.current) clearInterval(timerRef.current);
     setMinutes(sessionDuration);
     setSeconds(0);
     setTimerComplete(false);

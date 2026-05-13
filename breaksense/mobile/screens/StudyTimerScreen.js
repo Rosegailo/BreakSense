@@ -16,7 +16,7 @@ export default function StudyTimerScreen({ navigation }) {
   const { colors } = useTheme();
   const {
     minutes, seconds, isRunning, sessionDuration,
-    setSessionDuration, setMinutes, setSeconds,
+    setSessionDuration,
     currentSession, setCurrentSession,
     totalSessions, setTotalSessions,
     startTimer, stopTimer, resetTimer,
@@ -102,8 +102,6 @@ export default function StudyTimerScreen({ navigation }) {
   const handleDurationChange = (duration) => {
     if (isRunning) return;
     setSessionDuration(duration);
-    setMinutes(duration);
-    setSeconds(0);
     setNotificationState({ message: null, type: 'success' });
   };
 

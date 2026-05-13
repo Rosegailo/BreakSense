@@ -8,12 +8,15 @@ const TimerContext = createContext();
 
 export const TimerProvider = ({ children }) => {
   const [sessionDuration, setSessionDuration] = useState(25);
-  const [minutes, setMinutes] = useState(25);
-  const [seconds, setSeconds] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [currentSession, setCurrentSession] = useState(1);
   const [totalSessions, setTotalSessions] = useState(4);
   const [timerComplete, setTimerComplete] = useState(false);
+
+  // Derived state for minutes/seconds
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   const timerRef = useRef(null);
   const soundRef = useRef(null);
@@ -26,15 +29,13 @@ export const TimerProvider = ({ children }) => {
       if (savedPomodoro && !isRunning) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
         setSessionDuration(dur);
-        setMinutes(dur);
-        setSeconds(0);
+        setTimeLeft(dur * 60);
       }
     } catch (e) {
       console.error("Failed to reload timer settings", e);
     }
   };
 
-  // Load persistence and settings on mount
   useEffect(() => {
     const loadPersistence = async () => {
       await reloadSettings();
@@ -46,7 +47,6 @@ export const TimerProvider = ({ children }) => {
     loadPersistence();
   }, []);
 
-  // Save current session whenever it changes
   useEffect(() => {
     AsyncStorage.setItem('timer_current_session', currentSession.toString());
   }, [currentSession]);
@@ -82,13 +82,11 @@ export const TimerProvider = ({ children }) => {
     try {
       const userId = await AsyncStorage.getItem('currentUserId');
       if (userId) {
-        // 1. Log to users table for stats
         await axios.post(`${API_BASE_URL}/breaks/log-study`, {
           user_id: userId,
           study_duration: duration
         });
 
-        // 2. Log to history table for the "Logs" screen
         await axios.post(`${API_BASE_URL}/breaks/save`, {
           user_id: userId,
           break_type: `Study Session ${currentSession}`,
@@ -108,27 +106,16 @@ export const TimerProvider = ({ children }) => {
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
-        setSeconds(prevSeconds => {
-          if (prevSeconds > 0) {
-            return prevSeconds - 1;
-          } else {
-            let currentMinutes;
-            setMinutes(prevMinutes => {
-              currentMinutes = prevMinutes;
-              if (prevMinutes > 0) return prevMinutes - 1;
-              return 0;
-            });
-
-            if (currentMinutes === 0) {
-              clearInterval(timerRef.current);
-              setIsRunning(false);
-              playRingtone();
-              saveStudyLog(sessionDuration);
-              setTimerComplete(true);
-              return 0;
-            }
-            return 59;
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            setIsRunning(false);
+            playRingtone();
+            saveStudyLog(sessionDuration);
+            setTimerComplete(true);
+            return 0;
           }
+          return prev - 1;
         });
       }, 1000);
     } else {
@@ -137,26 +124,24 @@ export const TimerProvider = ({ children }) => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning, sessionDuration, currentSession]);
+  }, [isRunning, sessionDuration]);
 
   const startTimer = () => {
+    if (timeLeft === 0) {
+      setTimeLeft(sessionDuration * 60);
+    }
     setTimerComplete(false);
     setIsRunning(true);
   };
 
   const advanceSession = () => {
-    setCurrentSession(prev => {
-      const next = prev < totalSessions ? prev + 1 : 1;
-      return next;
-    });
-    setMinutes(sessionDuration);
-    setSeconds(0);
+    setCurrentSession(prev => (prev < totalSessions ? prev + 1 : 1));
+    setTimeLeft(sessionDuration * 60);
   };
 
   const stopTimer = async () => {
     const totalSecondsPossible = sessionDuration * 60;
-    const secondsRemaining = (minutes * 60) + seconds;
-    const secondsSpent = totalSecondsPossible - secondsRemaining;
+    const secondsSpent = totalSecondsPossible - timeLeft;
     const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
 
     setIsRunning(false);
@@ -171,15 +156,21 @@ export const TimerProvider = ({ children }) => {
   const resetTimer = () => {
     setIsRunning(false);
     if (timerRef.current) clearInterval(timerRef.current);
-    setMinutes(sessionDuration);
-    setSeconds(0);
+    setTimeLeft(sessionDuration * 60);
     setTimerComplete(false);
+  };
+
+  const updateSessionDuration = (dur) => {
+    setSessionDuration(dur);
+    if (!isRunning) {
+      setTimeLeft(dur * 60);
+    }
   };
 
   return (
     <TimerContext.Provider value={{
       minutes, seconds, isRunning, sessionDuration,
-      setSessionDuration, setMinutes, setSeconds,
+      setSessionDuration: updateSessionDuration,
       currentSession, setCurrentSession,
       totalSessions, setTotalSessions,
       startTimer, stopTimer, resetTimer,

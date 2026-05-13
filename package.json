@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@expo-google-fonts/syne": "^0.4.2"
+    "@expo-google-fonts/syne": "^0.4.2",
+    "expo-av": "^16.0.8"
   }
 }

@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "BreakSense",
+    "slug": "breaksense",
+    "scheme": "breaksense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.rosemarie.breaksense"
+    },
+    "android": {
+      "package": "com.rosemarie.breaksense",
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0c4decb7-b77e-460c-805c-4cd82b4ac3b4"
+      }
+    }
+  }
+}

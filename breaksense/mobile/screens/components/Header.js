@@ -1,0 +1,63 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../context/ThemeContext';
+import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+
+export default function Header() {
+  const navigation = useNavigation();
+  const { colors } = useTheme();
+  const [fontsLoaded] = useFonts({ Syne_800ExtraBold });
+
+  return (
+    <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <View style={styles.logoWrapper}>
+        <Image
+          source={require('../../img/logo.png')}
+          style={styles.headerIcon}
+          resizeMode="contain"
+        />
+        <Text style={[styles.brandName, { color: colors.textPrimary }, fontsLoaded && { fontFamily: 'Syne_800ExtraBold' }]}>
+          Break<Text style={{ color: colors.textPrimary }}>Sense</Text>
+        </Text>
+      </View>
+      <TouchableOpacity onPress={() => navigation.openDrawer()}
+      style={{ paddingRight: 20 }}>
+        <Ionicons name="menu" size={24} color={colors.accent} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+    paddingTop: 35, // Added padding for status bar area
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3342',
+    zIndex: 100, // Ensure it stays on top
+  },
+  logoWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 20,
+  },
+  headerIcon: {
+    width: 42,
+    height: 42,
+  },
+  logoText: { 
+    fontSize: 10,
+    fontWeight: 'bold' 
+  },
+  brandName: { 
+    fontSize: 18,
+    fontWeight: 'normal'
+  },
+});

@@ -1,0 +1,5 @@
+# Ignore local native folders to let EAS build them fresh in the cloud
+android/
+ios/
+node_modules/
+.expo/

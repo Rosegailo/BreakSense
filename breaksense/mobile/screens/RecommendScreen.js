@@ -57,6 +57,20 @@ const RATINGS = [
   { label: '😫', value: 1 }, { label: '😐', value: 2 }, { label: '🙂', value: 3 }, { label: '😊', value: 4 }, { label: '🤩', value: 5 }
 ];
 
+const FATIGUE_OPTIONS = [
+  { label: 'Energized', emoji: '😁', value: 1 },
+  { label: 'Good', emoji: '🙂', value: 2 },
+  { label: 'Neutral', emoji: '😐', value: 3 },
+  { label: 'Tired', emoji: '😫', value: 4 },
+  { label: 'Exhausted', emoji: '🥱', value: 5 },
+];
+
+const STRESS_OPTIONS = [
+  { label: 'Low', emoji: '😌', value: 1 },
+  { label: 'Mild', emoji: '😰', value: 2 },
+  { label: 'High', emoji: '🤯', value: 3 },
+];
+
 export default function RecommendScreen({ navigation, route }) {
   const { user } = useUser();
   const { checkin, sessionInfo } = route.params || {};
@@ -131,6 +145,12 @@ export default function RecommendScreen({ navigation, route }) {
     Vibration.vibrate(500);
     await playRingtone();
 
+    Alert.alert(
+      "Break Finished!",
+      "Time to get back to work or log your progress. Click OK to stop the alarm.",
+      [{ text: "OK", onPress: () => stopRingtone() }]
+    );
+
     setNotificationState({
       message: 'Break complete! Feel refreshed?',
       type: 'info'
@@ -166,6 +186,8 @@ export default function RecommendScreen({ navigation, route }) {
       setSaving(false);
     }
   };
+
+  const getLabel = (val, options) => options.find(o => o.value === val)?.label || "...";
 
   if (!checkin) {
     return (
@@ -235,6 +257,19 @@ export default function RecommendScreen({ navigation, route }) {
               <Text style={[styles.stepText, { color: colors.textSecondary }]}>{step}</Text>
             </View>
           ))}
+        </View>
+
+        {/* Transfered Live Input Vector here */}
+        <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
+          <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
+            <Text style={styles.vectorLabel}>Feature Vector (Inputs from Check-in)</Text>
+            <Text style={[styles.vectorValue, { color: colors.accent }]}>
+              [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin.fatigue, FATIGUE_OPTIONS)}</Text>,
+               stress: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin.stress, STRESS_OPTIONS)}</Text>,
+               time: <Text style={{ color: colors.textPrimary }}>{checkin.time} min</Text>]
+            </Text>
+          </View>
         </View>
 
         <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -335,5 +370,10 @@ const styles = StyleSheet.create({
   notificationText: {
     fontSize: 14,
     fontWeight: 'bold',
-  }
+  },
+  vectorCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
+  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
+  vectorContent: { padding: 15, borderRadius: 12 },
+  vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
+  vectorValue: { fontSize: 14 }
 });

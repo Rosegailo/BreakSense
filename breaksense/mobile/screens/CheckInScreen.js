@@ -60,15 +60,6 @@ export default function CheckInScreen({ navigation, route }) {
           <Text style={styles.subtitle}>How are you feeling right now?</Text>
         </View>
 
-        {sessionNumber && (
-          <View style={[styles.notificationBox, { backgroundColor: '#422006', borderColor: '#f97316' }]}>
-            <Text style={[styles.notificationText, { color: '#fb923c' }]}>
-              Session {sessionNumber} complete! Time for your break.
-            </Text>
-            <Text style={[styles.notificationSub, { color: '#d97706' }]}>Time for your break.</Text>
-          </View>
-        )}
-
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Fatigue Level</Text>
@@ -127,18 +118,6 @@ export default function CheckInScreen({ navigation, route }) {
           <TouchableOpacity style={[styles.analyzeBtn, { backgroundColor: colors.accent }]} onPress={handleAnalyze}>
             <Text style={styles.analyzeBtnText}>Analyze & Recommend</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
-          <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
-            <Text style={styles.vectorLabel}>Feature Vector</Text>
-            <Text style={[styles.vectorValue, { color: colors.accent }]}>
-              [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(fatigue, FATIGUE_OPTIONS)}</Text>,
-               stress: <Text style={{ color: colors.textPrimary }}>{getLabel(stress, STRESS_OPTIONS)}</Text>,
-               time: <Text style={{ color: colors.textPrimary }}>{time ? `${time} min` : "..."}</Text>]
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -20,7 +20,8 @@ export default function StudyTimerScreen({ navigation }) {
     currentSession, setCurrentSession,
     totalSessions, setTotalSessions,
     startTimer, stopTimer, resetTimer,
-    timerComplete, setTimerComplete
+    timerComplete, setTimerComplete,
+    stopRingtone
   } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);
@@ -35,10 +36,31 @@ export default function StudyTimerScreen({ navigation }) {
   // Handle Timer Completion Navigation
   useEffect(() => {
     if (timerComplete) {
-      setNotificationState({
-        message: `Session ${currentSession} complete! Heading to check-in...`,
-        type: 'success'
-      });
+      Alert.alert(
+        "Study Session Complete!",
+        "Great job! Click OK to stop the alarm and head to your break check-in.",
+        [{
+          text: "OK",
+          onPress: async () => {
+            await stopRingtone();
+            setTimerComplete(false);
+            navigation.navigate('Check-in', {
+              sessionDuration: sessionDuration,
+              sessionNumber: currentSession,
+              isLastSession: currentSession === totalSessions
+            });
+
+            // Reset for next
+            if (currentSession < totalSessions) {
+              setCurrentSession(prev => prev + 1);
+            } else {
+              setCurrentSession(1);
+            }
+            setMinutes(sessionDuration);
+            setSeconds(0);
+          }
+        }]
+      );
 
       // Update local progress counters
       setSessionsCount(prev => (typeof prev === 'number' ? prev : parseInt(prev) || 0) + 1);
@@ -46,24 +68,6 @@ export default function StudyTimerScreen({ navigation }) {
         const currentNum = parseInt(prev) || 0;
         return `${currentNum + sessionDuration}m`;
       });
-
-      setTimeout(() => {
-        setTimerComplete(false);
-        navigation.navigate('Check-in', {
-          sessionDuration: sessionDuration,
-          sessionNumber: currentSession,
-          isLastSession: currentSession === totalSessions
-        });
-
-        // Reset for next
-        if (currentSession < totalSessions) {
-          setCurrentSession(prev => prev + 1);
-        } else {
-          setCurrentSession(1);
-        }
-        setMinutes(sessionDuration);
-        setSeconds(0);
-      }, 3000);
     }
   }, [timerComplete]);
 

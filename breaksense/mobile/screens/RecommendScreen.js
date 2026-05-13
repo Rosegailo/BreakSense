@@ -235,6 +235,16 @@ export default function RecommendScreen({ navigation, route }) {
                   <Text style={styles.actionBtnText}>Start Break</Text>
                 </TouchableOpacity>
               )}
+              {timerRunning && (
+                <View style={styles.row}>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]} onPress={() => setTimerRunning(false)}>
+                    <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>Pause</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.accent, marginLeft: 10 }]} onPress={handleFinish}>
+                    <Text style={styles.actionBtnText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               {isFinished && (
                 <View style={{ width: '100%', alignItems: 'center' }}>
                   <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How refreshed do you feel?</Text>
@@ -287,6 +297,7 @@ const styles = StyleSheet.create({
   logText: { fontSize: 13, fontFamily: 'monospace' },
   timerCard: { borderRadius: 20, padding: 25, alignItems: 'center' },
   timerValue: { fontSize: 60, fontWeight: '900', marginBottom: 20 },
+  row: { flexDirection: 'row', width: '100%' },
   actionBtn: { paddingVertical: 15, borderRadius: 15, alignItems: 'center', width: '100%' },
   actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
   emojiRow: { flexDirection: 'row', gap: 15, marginBottom: 20 },

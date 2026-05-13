@@ -31,7 +31,7 @@ export default function CheckInScreen({ navigation, route }) {
   const { colors } = useTheme();
   const [fatigue, setFatigue] = useState(null);
   const [stress, setStress] = useState(null);
-  const [time, setTime] = useState(10);
+  const [time, setTime] = useState(null);
 
   useEffect(() => {
     if (route.params?.fatigue) setFatigue(route.params.fatigue);
@@ -55,7 +55,7 @@ export default function CheckInScreen({ navigation, route }) {
         checkin: { 
           stress, 
           fatigue, 
-          time: time || 10 
+          time,
         },
         sessionInfo: route.params 
       });

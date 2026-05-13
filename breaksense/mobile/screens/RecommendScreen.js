@@ -57,10 +57,8 @@ export default function RecommendScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { playRingtone, stopRingtone } = useTimer();
 
-  // Inputs from navigation
   const { checkin, sessionInfo } = route.params || {};
 
-  // Local State to keep the recommendation visible even if params change or screen blurred
   const [selected, setSelected] = useState(null);
   const [finalDuration, setFinalDuration] = useState(5);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -68,10 +66,9 @@ export default function RecommendScreen({ navigation, route }) {
   const [isFinished, setIsFinished] = useState(false);
   const [rating, setRating] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [mlLog, setMlLog] = useState("");
+  const [mlLog, setMlLog] = useState("Initializing...");
   const [saving, setSaving] = useState(false);
 
-  // Fetch recommendation when checkin params arrive
   useEffect(() => {
     if (checkin) {
       fetchRecommendation();
@@ -98,7 +95,7 @@ export default function RecommendScreen({ navigation, route }) {
       setTimerRunning(false);
       setRating(null);
     } catch (error) {
-      console.error(error);
+      setMlLog("ML Error: Using local fallback.");
       setSelected(BREAK_DATA['eye_rest']);
       setSecondsLeft(300);
     } finally {
@@ -148,11 +145,9 @@ export default function RecommendScreen({ navigation, route }) {
       await axios.post(`${API_BASE_URL}/breaks/save`, payload);
       Alert.alert('Success', 'Session saved!');
 
-      // Reset for next time
       setSelected(null);
       setIsFinished(false);
 
-      // Reset the Check-in form and go Home
       navigation.navigate('Check-in', { reset: true });
       navigation.navigate('Home');
     } catch (error) {
@@ -178,7 +173,7 @@ export default function RecommendScreen({ navigation, route }) {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
 
         {!selected ? (
           <View style={styles.emptyContainer}>
@@ -186,24 +181,21 @@ export default function RecommendScreen({ navigation, route }) {
             <Text style={{ color: colors.textPrimary, fontSize: 32, fontWeight: '900', textAlign: 'center'}}>
               No Recommendation Yet
             </Text>
-            <Text style={styles.subtitle}>Complete your Mood Check-in first to get started.</Text>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: colors.accent, marginTop: 30 }]}
-              onPress={() => navigation.navigate('Check-in')}
-            >
-              <Text style={styles.actionBtnText}>Go to Check-in</Text>
+            <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>
+            <TouchableOpacity style={[styles.emptyLogBtn, { borderColor: colors.accent }]} onPress={() => navigation.navigate('Check-in')}>
+              <Text style={[styles.emptyLogBtnText, { color: colors.accent }]}>Go to Check-in</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <View style={styles.titleContainer}>
-              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-                Your <Text style={{ color: colors.accent }}>Break</Text>
+            <View style={styles.headerContainer}>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary, fontWeight: '900', fontFamily: 'Syne-ExtraBold' }]}>
+                Break <Text style={{ color: colors.accent }}>Rec</Text>
               </Text>
-              <Text style={styles.subtitle}>KNN matched this activity for you.</Text>
+              <Text style={styles.headerSubtitle}>Personalized via Python ML.</Text>
             </View>
 
-            <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.mainActivityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.categoryLabel}>{selected.category}</Text>
               <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>{selected.icon} {selected.title}</Text>
               <Text style={styles.activitySubtitle}>{selected.subtitle}</Text>
@@ -218,10 +210,20 @@ export default function RecommendScreen({ navigation, route }) {
 
             <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
-              <Text style={[styles.vectorValue, { color: colors.accent }]}>
-                [F:{getLabel(checkin?.fatigue, FATIGUE_OPTIONS)}, S:{getLabel(checkin?.stress, STRESS_OPTIONS)}, T:{checkin?.time}m]
-              </Text>
-              <Text style={[styles.vectorLog, { color: colors.textSecondary }]}>{mlLog}</Text>
+              <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
+                <Text style={styles.vectorLabel}>Feature Vector (Inputs from Check-in)</Text>
+                <Text style={[styles.vectorValue, { color: colors.accent }]}>
+                  [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin?.fatigue, FATIGUE_OPTIONS)}</Text>,
+                   stress: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin?.stress, STRESS_OPTIONS)}</Text>,
+                   time: <Text style={{ color: colors.textPrimary }}>{checkin?.time} min</Text>]
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={styles.cardLabel}>PYTHON ML SERVICE LOG</Text>
+              <View style={styles.logDetailRow}><View style={styles.dot} /><Text style={[styles.logText, { color: colors.textSecondary }]}>In: [F:{checkin?.fatigue}, S:{checkin?.stress}, T:{checkin?.time}]</Text></View>
+              <View style={styles.logDetailRow}><View style={[styles.dot, {backgroundColor: colors.accent}]} /><Text style={[styles.logText, { color: colors.textSecondary }]}>{mlLog}</Text></View>
             </View>
 
             <View style={[styles.timerCard, { backgroundColor: colors.card }]}>
@@ -230,17 +232,12 @@ export default function RecommendScreen({ navigation, route }) {
               </Text>
               {!timerRunning && !isFinished && (
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={() => setTimerRunning(true)}>
-                  <Text style={styles.actionBtnText}>Start Break Activity</Text>
-                </TouchableOpacity>
-              )}
-              {timerRunning && (
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger }]} onPress={() => setTimerRunning(false)}>
-                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pause</Text>
+                  <Text style={styles.actionBtnText}>Start Break</Text>
                 </TouchableOpacity>
               )}
               {isFinished && (
                 <View style={{ width: '100%', alignItems: 'center' }}>
-                  <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How was it?</Text>
+                  <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How refreshed do you feel?</Text>
                   <View style={styles.emojiRow}>
                     {RATINGS.map(r => (
                       <TouchableOpacity key={r.value} onPress={() => setRating(r.value)}>
@@ -249,7 +246,7 @@ export default function RecommendScreen({ navigation, route }) {
                     ))}
                   </View>
                   <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleLogSession} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.actionBtnText}>Save & Done</Text>}
+                    {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.actionBtnText}>Save & Return</Text>}
                   </TouchableOpacity>
                 </View>
               )}
@@ -264,26 +261,34 @@ export default function RecommendScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 },
-  titleContainer: { marginBottom: 20 },
-  title: { fontSize: 25, fontWeight: '900' },
-  subtitle: { color: '#888', fontSize: 13, marginTop: 5, textAlign: 'center' },
-  mainCard: { borderRadius: 20, padding: 20, borderWidth: 1, marginBottom: 15 },
-  categoryLabel: { color: '#a855f7', fontSize: 10, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase' },
-  activityTitle: { fontSize: 26, fontWeight: 'bold' },
-  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 5 },
-  divider: { height: 1, marginVertical: 15 },
-  stepRow: { flexDirection: 'row', marginBottom: 10 },
-  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 10 },
-  stepText: { fontSize: 13, flex: 1, lineHeight: 18 },
-  actionBtn: { paddingVertical: 16, borderRadius: 16, alignItems: 'center', width: '100%', marginTop: 10 },
+  emptyContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 40, paddingTop: 180},
+  headerContainer: { marginTop: 20, marginBottom: 25 },
+  headerTitle: { fontSize: 25, fontWeight: '900'},
+  headerSubtitle: { color: '#888', fontSize: 14 },
+  emptyLogBtn: { borderWidth: 1, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 10 },
+  emptyLogBtnText: { fontWeight: '600' },
+  mainActivityCard: { borderRadius: 20, padding: 25, borderWidth: 1, marginBottom: 15 },
+  categoryLabel: { color: '#a855f7', fontSize: 11, fontWeight: 'bold', marginBottom: 15, textTransform: 'uppercase' },
+  activityTitle: { fontSize: 28, fontWeight: 'bold' },
+  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 10 },
+  divider: { height: 1, marginVertical: 20 },
+  stepRow: { flexDirection: 'row', marginBottom: 12 },
+  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 15, width: 15 },
+  stepText: { fontSize: 14, flex: 1 },
+  vectorCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
+  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
+  vectorContent: { padding: 15, borderRadius: 12 },
+  vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
+  vectorValue: { fontSize: 14 },
+  logCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
+  cardLabel: { color: '#64748b', fontSize: 11, fontWeight: 'bold', marginBottom: 15 },
+  logDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#facc15', marginRight: 12 },
+  logText: { fontSize: 13, fontFamily: 'monospace' },
+  timerCard: { borderRadius: 20, padding: 25, alignItems: 'center' },
+  timerValue: { fontSize: 60, fontWeight: '900', marginBottom: 20 },
+  actionBtn: { paddingVertical: 15, borderRadius: 15, alignItems: 'center', width: '100%' },
   actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
-  vectorCard: { borderRadius: 20, padding: 18, marginBottom: 15, borderWidth: 1 },
-  vectorTitle: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
-  vectorValue: { fontSize: 13, fontFamily: 'monospace' },
-  vectorLog: { fontSize: 11, marginTop: 5, fontStyle: 'italic' },
-  timerCard: { borderRadius: 20, padding: 20, alignItems: 'center' },
-  timerValue: { fontSize: 52, fontWeight: '900', marginBottom: 15 },
   emojiRow: { flexDirection: 'row', gap: 15, marginBottom: 20 },
   emoji: { fontSize: 30 }
 });

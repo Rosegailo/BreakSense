@@ -33,20 +33,17 @@ export default function CheckInScreen({ navigation, route }) {
   const [stress, setStress] = useState(null);
   const [time, setTime] = useState(10);
 
-  // If we come from Study Timer, we might have session info
   useEffect(() => {
     if (route.params?.fatigue) setFatigue(route.params.fatigue);
     if (route.params?.stress) setStress(route.params.stress);
   }, [route.params]);
 
-  // Handle resetting the form when a session is finished elsewhere
   useFocusEffect(
     useCallback(() => {
       if (route.params?.reset) {
         setFatigue(null);
         setStress(null);
         setTime(10);
-        // Clear the reset param so it doesn't keep resetting
         navigation.setParams({ reset: false });
       }
     }, [route.params])
@@ -54,7 +51,6 @@ export default function CheckInScreen({ navigation, route }) {
 
   const handleAnalyze = () => {
     if (fatigue && stress) {
-      // Navigate to the Recommendation screen in the drawer
       navigation.navigate('Recommendation', {
         checkin: { 
           stress, 
@@ -68,15 +64,17 @@ export default function CheckInScreen({ navigation, route }) {
     }
   };
 
+  const getLabel = (val, options) => options.find(o => o.value === val)?.label || "...";
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-        <Header />
-        <ScrollView style={styles.container}>
+      <Header />
+      <ScrollView style={styles.container}>
         <View style={styles.titleContainer}>
           <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
             Mood <Text style={{ color: colors.accent }}>Check-in</Text>
           </Text>
-          <Text style={styles.subtitle}>Tell KNN how you feel to get a break recommendation.</Text>
+          <Text style={styles.subtitle}>How are you feeling right now?</Text>
         </View>
 
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -115,7 +113,7 @@ export default function CheckInScreen({ navigation, route }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Available Time</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Break Time</Text>
             <View style={styles.chipContainer}>
               {TIME_OPTIONS.map((opt) => (
                 <TouchableOpacity 
@@ -135,6 +133,18 @@ export default function CheckInScreen({ navigation, route }) {
             <Text style={styles.analyzeBtnText}>Analyze & Recommend</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
+          <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
+            <Text style={styles.vectorLabel}>Feature Vector (Inputs from Check-in)</Text>
+            <Text style={[styles.vectorValue, { color: colors.accent }]}>
+              [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(fatigue, FATIGUE_OPTIONS)}</Text>,
+               stress: <Text style={{ color: colors.textPrimary }}>{getLabel(stress, STRESS_OPTIONS)}</Text>,
+               time: <Text style={{ color: colors.textPrimary }}>{time} min</Text>]
+            </Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -153,5 +163,10 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
   chipText: { fontSize: 13 },
   analyzeBtn: { paddingVertical: 18, borderRadius: 20, alignItems: 'center', marginTop: 10 },
-  analyzeBtnText: { color: '#000', fontSize: 16, fontWeight: 'bold' }
+  analyzeBtnText: { color: '#000', fontSize: 16, fontWeight: 'bold' },
+  vectorCard: { borderRadius: 20, padding: 20, marginVertical: 25, borderWidth: 1 },
+  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
+  vectorContent: { padding: 15, borderRadius: 12 },
+  vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
+  vectorValue: { fontSize: 14 }
 });

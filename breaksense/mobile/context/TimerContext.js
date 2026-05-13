@@ -47,9 +47,22 @@ export const TimerProvider = ({ children }) => {
     try {
       const userId = await AsyncStorage.getItem('currentUserId');
       if (userId) {
+        // Log to users table (for stats/streaks)
         await axios.post(`${API_BASE_URL}/breaks/log-study`, {
           user_id: userId,
           study_duration: duration
+        });
+
+        // Log to history table (so it appears in "Logs")
+        await axios.post(`${API_BASE_URL}/breaks/save`, {
+          user_id: userId,
+          break_type: 'Study Session',
+          category: 'Focus Time',
+          duration_taken: duration,
+          fatigue_before: 0,
+          stress_before: 0,
+          rating: 5,
+          session_number: currentSession
         });
       }
     } catch (e) {
@@ -57,23 +70,22 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
+  // Improved Timer Logic
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
-        setSeconds(prev => {
-          if (prev > 0) return prev - 1;
+        setSeconds(prevSec => {
+          if (prevSec > 0) return prevSec - 1;
 
-          let nextMinutes;
+          // Seconds is 0, check minutes
+          let shouldStop = false;
           setMinutes(prevMin => {
-            if (prevMin > 0) {
-              nextMinutes = prevMin - 1;
-              return nextMinutes;
-            }
-            nextMinutes = 0;
+            if (prevMin > 0) return prevMin - 1;
+            shouldStop = true;
             return 0;
           });
 
-          if (nextMinutes === 0) {
+          if (shouldStop) {
             clearInterval(timerRef.current);
             setIsRunning(false);
             playRingtone();
@@ -81,13 +93,16 @@ export const TimerProvider = ({ children }) => {
             setTimerComplete(true);
             return 0;
           }
+
           return 59;
         });
       }, 1000);
     } else {
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     }
-    return () => clearInterval(timerRef.current);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [isRunning, sessionDuration]);
 
   const startTimer = () => {
@@ -105,7 +120,7 @@ export const TimerProvider = ({ children }) => {
       setIsRunning(false);
       await saveStudyLog(timeSpentMinutes);
 
-      // Prepare for next session
+      // Reset timer state but advance session
       if (currentSession < totalSessions) {
         setCurrentSession(prev => prev + 1);
       } else {

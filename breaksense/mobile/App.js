@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 // Import User Context and Hook
 import { UserContext, useUser } from './UserContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { TimerProvider } from './context/TimerContext';
 
 // Import Screens
 import LoginScreen from './screens/LoginScreen';
@@ -199,32 +200,34 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <UserContext.Provider value={{ user, setUser }}>
-        <StatusBar style="auto" />
-        <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {user ? (
-              <>
-                <Stack.Screen name="MainApp">
-                  {(props) => <DrawerScreens {...props} />}
+      <TimerProvider>
+        <UserContext.Provider value={{ user, setUser }}>
+          <StatusBar style="auto" />
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              {user ? (
+                <>
+                  <Stack.Screen name="MainApp">
+                    {(props) => <DrawerScreens {...props} />}
+                  </Stack.Screen>
+                  <Stack.Screen
+                    name="Settings"
+                    component={SettingsScreen}
+                    options={{
+                      presentation: 'transparentModal',
+                      animation: 'slide_from_bottom',
+                    }}
+                  />
+                </>
+              ) : (
+                <Stack.Screen name="Auth">
+                  {(props) => <AuthStackScreens {...props} onLogin={handleLogin} />}
                 </Stack.Screen>
-                <Stack.Screen
-                  name="Settings"
-                  component={SettingsScreen}
-                  options={{
-                    presentation: 'transparentModal',
-                    animation: 'slide_from_bottom',
-                  }}
-                />
-              </>
-            ) : (
-              <Stack.Screen name="Auth">
-                {(props) => <AuthStackScreens {...props} onLogin={handleLogin} />}
-              </Stack.Screen>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </UserContext.Provider>
+              )}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </UserContext.Provider>
+      </TimerProvider>
     </ThemeProvider>
   );
 }

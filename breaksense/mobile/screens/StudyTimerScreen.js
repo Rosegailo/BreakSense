@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, AppState
+  View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from './components/Header';
@@ -10,17 +10,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTheme } from '../context/ThemeContext';
-import { Audio } from 'expo-av';
+import { useTimer } from '../context/TimerContext';
 
 export default function StudyTimerScreen({ navigation }) { 
   const { colors } = useTheme();
-  const [sessionDuration, setSessionDuration] = useState(25); // in minutes
-  const [minutes, setMinutes] = useState(25);
-  const [seconds, setSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  
-  const [currentSession, setCurrentSession] = useState(1);
-  const [totalSessions, setTotalSessions] = useState(4);
+  const {
+    minutes, seconds, isRunning, sessionDuration,
+    setSessionDuration, setMinutes, setSeconds,
+    currentSession, setCurrentSession,
+    totalSessions, setTotalSessions,
+    startTimer, stopTimer, resetTimer,
+    timerComplete, setTimerComplete
+  } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);
   const [totalStudyTime, setTotalStudyTime] = useState('0m');
@@ -31,105 +32,40 @@ export default function StudyTimerScreen({ navigation }) {
     type: 'success'
   });
 
-  const timerRef = useRef(null);
-  const soundRef = useRef(null);
-  const startTimeRef = useRef(null);
-
-  // Play Ringtone Function
-  async function playRingtone() {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require('../assets/sounds/alarm.mp3'),
-        { shouldPlay: true }
-      );
-      soundRef.current = sound;
-    } catch (error) {
-      console.log('Error playing sound:', error);
-    }
-  }
-
-  // Cleanup sound on unmount
+  // Handle Timer Completion Navigation
   useEffect(() => {
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
-    };
-  }, []);
-
-  // Persistent Timer Logic
-  useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setSeconds(prevSeconds => {
-          if (prevSeconds > 0) return prevSeconds - 1;
-
-          setMinutes(prevMinutes => {
-            if (prevMinutes > 0) {
-              setSeconds(59);
-              return prevMinutes - 1;
-            }
-
-            // TIMER FINISHED
-            clearInterval(timerRef.current);
-            setIsRunning(false);
-            handleTimerComplete();
-            return 0;
-          });
-          return 0;
-        });
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [isRunning]);
-
-  const handleTimerComplete = async () => {
-    await playRingtone();
-
-    setSessionsCount(prev => (typeof prev === 'number' ? prev : parseInt(prev) || 0) + 1);
-    setTotalStudyTime(prev => {
-      const currentNum = parseInt(prev) || 0;
-      return `${currentNum + sessionDuration}m`;
-    });
-
-    const saveStudyLog = async () => {
-      try {
-        const userId = await AsyncStorage.getItem('currentUserId');
-        if (userId) {
-          await axios.post(`${API_BASE_URL}/breaks/log-study`, {
-            user_id: userId,
-            study_duration: sessionDuration
-          });
-        }
-      } catch (e) {
-        console.error("Failed to save study session to DB:", e.message);
-      }
-    };
-    saveStudyLog();
-
-    setNotificationState({
-      message: `Session ${currentSession} complete! Heading to check-in...`,
-      type: 'success'
-    });
-
-    setTimeout(() => {
-      navigation.navigate('Check-in', {
-        sessionDuration: sessionDuration,
-        sessionNumber: currentSession,
-        isLastSession: currentSession === totalSessions
+    if (timerComplete) {
+      setNotificationState({
+        message: `Session ${currentSession} complete! Heading to check-in...`,
+        type: 'success'
       });
 
-      if (currentSession < totalSessions) {
-        setCurrentSession(prev => prev + 1);
-      } else {
-        setCurrentSession(1);
-      }
-      setMinutes(sessionDuration);
-      setSeconds(0);
-    }, 3000);
-  };
+      // Update local progress counters
+      setSessionsCount(prev => (typeof prev === 'number' ? prev : parseInt(prev) || 0) + 1);
+      setTotalStudyTime(prev => {
+        const currentNum = parseInt(prev) || 0;
+        return `${currentNum + sessionDuration}m`;
+      });
+
+      setTimeout(() => {
+        setTimerComplete(false);
+        navigation.navigate('Check-in', {
+          sessionDuration: sessionDuration,
+          sessionNumber: currentSession,
+          isLastSession: currentSession === totalSessions
+        });
+
+        // Reset for next
+        if (currentSession < totalSessions) {
+          setCurrentSession(prev => prev + 1);
+        } else {
+          setCurrentSession(1);
+        }
+        setMinutes(sessionDuration);
+        setSeconds(0);
+      }, 3000);
+    }
+  }, [timerComplete]);
 
   // Load settings on focus
   useFocusEffect(
@@ -191,17 +127,12 @@ export default function StudyTimerScreen({ navigation }) {
 
   const handleStart = () => {
     setNotificationState({ message: null, type: 'success' });
-    setIsRunning(true);
+    startTimer();
   };
 
   const handleReset = async () => {
     if (isRunning) {
-      const totalSecondsPossible = sessionDuration * 60;
-      const secondsRemaining = (minutes * 60) + seconds;
-      const secondsSpent = totalSecondsPossible - secondsRemaining;
-      const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
-
-      setIsRunning(false);
+      const timeSpentMinutes = await stopTimer();
 
       setNotificationState({
         message: `Session saved early (${timeSpentMinutes}m).`,
@@ -214,37 +145,16 @@ export default function StudyTimerScreen({ navigation }) {
         return `${currentNum + timeSpentMinutes}m`;
       });
 
-      try {
-        const userId = await AsyncStorage.getItem('currentUserId');
-        if (userId) {
-          await axios.post(`${API_BASE_URL}/breaks/log-study`, {
-            user_id: userId,
-            study_duration: timeSpentMinutes
-          });
-        }
-      } catch (e) {
-        console.error("Failed to save study session early:", e.message);
-      }
-
       setTimeout(() => {
         navigation.navigate('Check-in', {
           sessionDuration: timeSpentMinutes,
           sessionNumber: currentSession,
           isLastSession: currentSession === totalSessions
         });
-
-        if (currentSession < totalSessions) {
-          setCurrentSession(prev => prev + 1);
-        } else {
-          setCurrentSession(1);
-        }
-        setMinutes(sessionDuration);
-        setSeconds(0);
       }, 1500);
 
     } else {
-      setMinutes(sessionDuration);
-      setSeconds(0);
+      resetTimer();
       setNotificationState({ message: null, type: 'success' });
     }
   };

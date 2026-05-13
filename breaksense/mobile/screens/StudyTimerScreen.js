@@ -21,7 +21,7 @@ export default function StudyTimerScreen({ navigation }) {
     totalSessions, setTotalSessions,
     startTimer, stopTimer, resetTimer,
     timerComplete, setTimerComplete,
-    stopRingtone
+    stopRingtone, advanceSession
   } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);
@@ -36,28 +36,26 @@ export default function StudyTimerScreen({ navigation }) {
   // Handle Timer Completion Navigation
   useEffect(() => {
     if (timerComplete) {
+      const finishedSession = currentSession;
+      const isLast = currentSession === totalSessions;
+
       Alert.alert(
         "Study Session Complete!",
-        "Great job! Click OK to stop the alarm and head to your break check-in.",
+        `Great job completing Session ${finishedSession}! Click OK to stop the alarm and head to your break check-in.`,
         [{
           text: "OK",
           onPress: async () => {
             await stopRingtone();
             setTimerComplete(false);
+
+            // Advance to next session for the UI
+            advanceSession();
+
             navigation.navigate('Check-in', {
               sessionDuration: sessionDuration,
-              sessionNumber: currentSession,
-              isLastSession: currentSession === totalSessions
+              sessionNumber: finishedSession,
+              isLastSession: isLast
             });
-
-            // Reset for next
-            if (currentSession < totalSessions) {
-              setCurrentSession(prev => prev + 1);
-            } else {
-              setCurrentSession(1);
-            }
-            setMinutes(sessionDuration);
-            setSeconds(0);
           }
         }]
       );
@@ -74,27 +72,7 @@ export default function StudyTimerScreen({ navigation }) {
   // Load settings on focus
   useFocusEffect(
     useCallback(() => {
-      const loadSettings = async () => {
-        try {
-          const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
-          const savedSessions = await AsyncStorage.getItem('settings_sessions');
-
-          if (!isRunning) {
-            if (savedPomodoro) {
-              const dur = parseInt(savedPomodoro.split(' ')[0]);
-              setSessionDuration(dur);
-              setMinutes(dur);
-              setSeconds(0);
-            }
-            if (savedSessions) {
-              setTotalSessions(parseInt(savedSessions));
-            }
-          }
-        } catch (e) {
-          console.error("Failed to load settings in Timer", e);
-        }
-      };
-      loadSettings();
+      reloadSettings();
     }, [isRunning])
   );
 
@@ -136,10 +114,12 @@ export default function StudyTimerScreen({ navigation }) {
 
   const handleReset = async () => {
     if (isRunning) {
+      const finishedSession = currentSession;
+      const isLast = currentSession === totalSessions;
       const timeSpentMinutes = await stopTimer();
 
       setNotificationState({
-        message: `Session saved early (${timeSpentMinutes}m).`,
+        message: `Session ${finishedSession} saved early (${timeSpentMinutes}m).`,
         type: 'success'
       });
 
@@ -152,8 +132,8 @@ export default function StudyTimerScreen({ navigation }) {
       setTimeout(() => {
         navigation.navigate('Check-in', {
           sessionDuration: timeSpentMinutes,
-          sessionNumber: currentSession,
-          isLastSession: currentSession === totalSessions
+          sessionNumber: finishedSession,
+          isLastSession: isLast
         });
       }, 1500);
 

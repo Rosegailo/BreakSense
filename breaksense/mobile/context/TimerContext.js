@@ -18,6 +18,39 @@ export const TimerProvider = ({ children }) => {
   const timerRef = useRef(null);
   const soundRef = useRef(null);
 
+  const reloadSettings = async () => {
+    try {
+      const savedSessions = await AsyncStorage.getItem('settings_sessions');
+      const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
+      if (savedSessions) setTotalSessions(parseInt(savedSessions));
+      if (savedPomodoro && !isRunning) {
+        const dur = parseInt(savedPomodoro.split(' ')[0]);
+        setSessionDuration(dur);
+        setMinutes(dur);
+        setSeconds(0);
+      }
+    } catch (e) {
+      console.error("Failed to reload timer settings", e);
+    }
+  };
+
+  // Load persistence and settings on mount
+  useEffect(() => {
+    const loadPersistence = async () => {
+      await reloadSettings();
+      try {
+        const savedCurrent = await AsyncStorage.getItem('timer_current_session');
+        if (savedCurrent) setCurrentSession(parseInt(savedCurrent));
+      } catch (e) {}
+    };
+    loadPersistence();
+  }, []);
+
+  // Save current session whenever it changes
+  useEffect(() => {
+    AsyncStorage.setItem('timer_current_session', currentSession.toString());
+  }, [currentSession]);
+
   const playRingtone = async () => {
     try {
       if (soundRef.current) {
@@ -49,16 +82,16 @@ export const TimerProvider = ({ children }) => {
     try {
       const userId = await AsyncStorage.getItem('currentUserId');
       if (userId) {
-        // Log to users table (for stats/streaks)
+        // 1. Log to users table for stats
         await axios.post(`${API_BASE_URL}/breaks/log-study`, {
           user_id: userId,
           study_duration: duration
         });
 
-        // Log to history table (so it appears in "Logs")
+        // 2. Log to history table for the "Logs" screen
         await axios.post(`${API_BASE_URL}/breaks/save`, {
           user_id: userId,
-          break_type: 'Study Session',
+          break_type: `Study Session ${currentSession}`,
           category: 'Focus Time',
           duration_taken: duration,
           fatigue_before: 0,
@@ -72,7 +105,6 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
-  // Simplified and Robust Timer Logic
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -80,7 +112,6 @@ export const TimerProvider = ({ children }) => {
           if (prevSeconds > 0) {
             return prevSeconds - 1;
           } else {
-            // Seconds is 0, check minutes
             let currentMinutes;
             setMinutes(prevMinutes => {
               currentMinutes = prevMinutes;
@@ -88,7 +119,6 @@ export const TimerProvider = ({ children }) => {
               return 0;
             });
 
-            // If minutes was already 0 when seconds hit 0, timer is done
             if (currentMinutes === 0) {
               clearInterval(timerRef.current);
               setIsRunning(false);
@@ -104,15 +134,23 @@ export const TimerProvider = ({ children }) => {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning, sessionDuration]);
+  }, [isRunning, sessionDuration, currentSession]);
 
   const startTimer = () => {
     setTimerComplete(false);
     setIsRunning(true);
+  };
+
+  const advanceSession = () => {
+    setCurrentSession(prev => {
+      const next = prev < totalSessions ? prev + 1 : 1;
+      return next;
+    });
+    setMinutes(sessionDuration);
+    setSeconds(0);
   };
 
   const stopTimer = async () => {
@@ -125,15 +163,7 @@ export const TimerProvider = ({ children }) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
     await saveStudyLog(timeSpentMinutes);
-
-    // Prepare for next session
-    if (currentSession < totalSessions) {
-      setCurrentSession(prev => prev + 1);
-    } else {
-      setCurrentSession(1);
-    }
-    setMinutes(sessionDuration);
-    setSeconds(0);
+    advanceSession();
 
     return timeSpentMinutes;
   };
@@ -154,7 +184,8 @@ export const TimerProvider = ({ children }) => {
       totalSessions, setTotalSessions,
       startTimer, stopTimer, resetTimer,
       timerComplete, setTimerComplete,
-      playRingtone, stopRingtone
+      playRingtone, stopRingtone,
+      advanceSession, reloadSettings
     }}>
       {children}
     </TimerContext.Provider>

@@ -69,7 +69,7 @@ function CustomDrawerContent(props) {
               style={styles.drawerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.drawerBrand, { color: '#FFFFFF', fontSize: 15, fontFamily: 'Syne-ExtraBold' }]}>
+            <Text style={[styles.drawerBrand, { color: colors.textPrimary, fontSize: 15, fontFamily: 'Syne-ExtraBold' }]}>
               BreakSense
             </Text>
           </View>

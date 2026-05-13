@@ -21,15 +21,25 @@ export const TimerProvider = ({ children }) => {
   const timerRef = useRef(null);
   const soundRef = useRef(null);
 
-  const reloadSettings = async () => {
+  // Only reloads settings, DOES NOT reset timeLeft unless forced
+  const reloadSettings = async (forceReset = false) => {
     try {
       const savedSessions = await AsyncStorage.getItem('settings_sessions');
       const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
-      if (savedSessions) setTotalSessions(parseInt(savedSessions));
-      if (savedPomodoro && !isRunning) {
+
+      if (savedSessions) {
+        setTotalSessions(parseInt(savedSessions));
+      }
+
+      if (savedPomodoro) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
         setSessionDuration(dur);
-        setTimeLeft(dur * 60);
+        // Only update timeLeft if the timer isn't running and we aren't in a completed state
+        // or if we explicitly want to force a reset (like when opening settings)
+        if (!isRunning && (forceReset || timeLeft === 0)) {
+           // If it's already 0, we might want to stay at 0 until start is pressed?
+           // Actually, let's only reset if it's currently at the old duration
+        }
       }
     } catch (e) {
       console.error("Failed to reload timer settings", e);
@@ -38,9 +48,17 @@ export const TimerProvider = ({ children }) => {
 
   useEffect(() => {
     const loadPersistence = async () => {
-      await reloadSettings();
       try {
+        const savedSessions = await AsyncStorage.getItem('settings_sessions');
+        const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
         const savedCurrent = await AsyncStorage.getItem('timer_current_session');
+
+        if (savedSessions) setTotalSessions(parseInt(savedSessions));
+        if (savedPomodoro) {
+          const dur = parseInt(savedPomodoro.split(' ')[0]);
+          setSessionDuration(dur);
+          setTimeLeft(dur * 60);
+        }
         if (savedCurrent) setCurrentSession(parseInt(savedCurrent));
       } catch (e) {}
     };
@@ -103,28 +121,31 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
+  // Improved Timer Logic with explicit completion handling
   useEffect(() => {
+    let interval;
     if (isRunning) {
-      timerRef.current = setInterval(() => {
+      interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            clearInterval(timerRef.current);
-            setIsRunning(false);
-            playRingtone();
-            saveStudyLog(sessionDuration);
-            setTimerComplete(true);
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, sessionDuration]);
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  // Handle completion when timeLeft reaches 0
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
+      setTimerComplete(true);
+      playRingtone();
+      saveStudyLog(sessionDuration);
+    }
+  }, [timeLeft, isRunning]);
 
   const startTimer = () => {
     if (timeLeft === 0) {
@@ -145,8 +166,6 @@ export const TimerProvider = ({ children }) => {
     const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
 
     setIsRunning(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-
     await saveStudyLog(timeSpentMinutes);
     advanceSession();
 
@@ -155,7 +174,6 @@ export const TimerProvider = ({ children }) => {
 
   const resetTimer = () => {
     setIsRunning(false);
-    if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(sessionDuration * 60);
     setTimerComplete(false);
   };

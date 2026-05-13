@@ -72,8 +72,10 @@ export default function StudyTimerScreen({ navigation }) {
   // Load settings on focus
   useFocusEffect(
     useCallback(() => {
-      reloadSettings();
-    }, [isRunning])
+      if (!isRunning) {
+        reloadSettings();
+      }
+    }, [])
   );
 
   // Fetch user stats

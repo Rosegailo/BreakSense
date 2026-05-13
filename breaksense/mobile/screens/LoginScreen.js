@@ -32,18 +32,32 @@ export default function LoginScreen({ navigation, onLogin }) {
         password,
       });
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         // 1. Save user data to AsyncStorage for persistence
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('currentUserId', response.data.user.id.toString());
 
         // 2. Call the onLogin function passed from App.js
         onLogin(response.data.user); 
+      } else {
+        // Fallback for success: false even with 200 status
+        Alert.alert('Login Failed', response.data.message || 'Invalid credentials');
       }
     } catch (error) {
-      console.error("Login Error:", error.response?.data || error.message);
-      const serverMessage = error.response?.data?.message || 'Something went wrong. Please check your internet and try again.';
-      Alert.alert('Login Failed', serverMessage);
+      console.error("Login Error Detail:", error.response?.data || error.message);
+
+      // Get the message from the server if available
+      let errorMessage = 'Something went wrong. Please check your internet connection.';
+
+      if (error.response) {
+        // Server responded with a status code outside the 2xx range
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.request) {
+        // Request was made but no response was received
+        errorMessage = "Cannot connect to server. Please check if your backend is running.";
+      }
+
+      Alert.alert('Login Failed', errorMessage);
     }
   };
 

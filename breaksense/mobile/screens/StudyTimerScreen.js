@@ -172,7 +172,7 @@ export default function StudyTimerScreen({ navigation }) {
       <Header />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary, fontWeight: '900' }]}>
+          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
             Study <Text style={[styles.titleHighlight, { color: colors.accent }]}>Timer</Text>
           </Text>
           <Text style={styles.subtitle}>POMODORO focus sessions.</Text>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   titleContainer: { marginBottom: 25 },
   title: { color: '#fff', fontSize: 25, fontWeight: '900' },
   titleHighlight: { color: '#39ef8d' },
-  subtitle: { color: '#888', fontSize: 14 },
+    subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   notificationBox: {
     paddingVertical: 12,
     paddingHorizontal: 16,

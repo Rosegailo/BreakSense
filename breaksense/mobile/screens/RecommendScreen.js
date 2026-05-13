@@ -34,20 +34,6 @@ const BREAK_DATA = {
   progressive_relax: { title: 'Progressive Relaxation', category: 'REST & RECOVERY', icon: '🛌', duration: 15, steps: ['Tense your feet for 5s, then release', 'Move to calves, thighs, glutes', 'Continue up to hands and face', 'Feel the total body heaviness'], subtitle: 'Systematic tension release.' }
 };
 
-const FATIGUE_OPTIONS = [
-  { label: 'Energized', emoji: '😁', value: 1 },
-  { label: 'Good', emoji: '🙂', value: 2 },
-  { label: 'Neutral', emoji: '😐', value: 3 },
-  { label: 'Tired', emoji: '😫', value: 4 },
-  { label: 'Exhausted', emoji: '🥱', value: 5 },
-];
-
-const STRESS_OPTIONS = [
-  { label: 'Low', emoji: '😌', value: 1 },
-  { label: 'Mild', emoji: '😰', value: 2 },
-  { label: 'High', emoji: '🤯', value: 3 },
-];
-
 const RATINGS = [
   { label: '😫', value: 1 }, { label: '😐', value: 2 }, { label: '🙂', value: 3 }, { label: '😊', value: 4 }, { label: '🤩', value: 5 }
 ];
@@ -157,8 +143,6 @@ export default function RecommendScreen({ navigation, route }) {
     }
   };
 
-  const getLabel = (val, options) => options.find(o => o.value === val)?.label || "...";
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -206,18 +190,6 @@ export default function RecommendScreen({ navigation, route }) {
                   <Text style={[styles.stepText, { color: colors.textSecondary }]}>{step}</Text>
                 </View>
               ))}
-            </View>
-
-            <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
-              <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
-                <Text style={styles.vectorLabel}>Feature Vector (Inputs from Check-in)</Text>
-                <Text style={[styles.vectorValue, { color: colors.accent }]}>
-                  [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin?.fatigue, FATIGUE_OPTIONS)}</Text>,
-                   stress: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin?.stress, STRESS_OPTIONS)}</Text>,
-                   time: <Text style={{ color: colors.textPrimary }}>{checkin?.time} min</Text>]
-                </Text>
-              </View>
             </View>
 
             <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -285,11 +257,6 @@ const styles = StyleSheet.create({
   stepRow: { flexDirection: 'row', marginBottom: 12 },
   stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 15, width: 15 },
   stepText: { fontSize: 14, flex: 1 },
-  vectorCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
-  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
-  vectorContent: { padding: 15, borderRadius: 12 },
-  vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
-  vectorValue: { fontSize: 14 },
   logCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
   cardLabel: { color: '#64748b', fontSize: 11, fontWeight: 'bold', marginBottom: 15 },
   logDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },

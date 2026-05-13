@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, Alert, ActivityIndicator, Vibration
@@ -10,52 +10,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTimer } from '../context/TimerContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 const BREAK_DATA = {
-  // Move Category
   sun_salutation: { title: 'Sun Salutation', category: 'PHYSICAL MOVEMENT', icon: '🧘', duration: 10, steps: ['Stand palms together at chest', 'Inhale arms up, exhale fold', 'Plank - upward dog', 'Downward dog & breath 3x'], subtitle: 'Yoga sequence linking breath and movement.' },
   five_min_walk: { title: '5-Min Walk', category: 'PHYSICAL MOVEMENT', icon: '🏃', duration: 5, steps: ['Step outside', 'Walk at a steady pace', 'Focus on your stride', 'Return refreshed'], subtitle: 'A brisk walk to clear your head.' },
   jumping_jacks: { title: 'Jumping Jacks', category: 'PHYSICAL MOVEMENT', icon: '⚡', duration: 5, steps: ['Stand with feet together', 'Jump and spread legs', 'Clap hands overhead', 'Repeat for 60 seconds'], subtitle: 'Quick cardio to wake up.' },
-
-  // Mind Category
   box_breathing: { title: 'Box Breathing', category: 'MINDFULNESS', icon: '🌬️', duration: 5, steps: ['Inhale 4 counts', 'Hold 4 counts', 'Exhale 4 counts', 'Hold 4 counts'], subtitle: 'Calm the nervous system.' },
   grounding: { title: '5-4-3-2-1 Grounding', category: 'MINDFULNESS', icon: '🌿', duration: 5, steps: ['Acknowledge 5 things you see', '4 things you can touch', '3 things you hear', '2 things you smell', '1 thing you can taste'], subtitle: 'Reconnect with the present moment.' },
-  visualization: { title: 'Visualization', category: 'MINDFULNESS', icon: '🌅', duration: 10, steps: ['Close your eyes', 'Imagine a peaceful place', 'Focus on the sensory details', 'Breathe deeply'], subtitle: 'Mental imagery for relaxation.' },
-
-  // Nutrition Category
-  hydration: { title: 'Hydration Reset', category: 'NUTRITION', icon: '💧', duration: 5, steps: ['Get a glass of water', 'Sip slowly', 'Focus on the cold sensation', 'Finish the glass'], subtitle: 'Rehydrate for better focus.' },
-  brain_snack: { title: 'Brain Snack', category: 'NUTRITION', icon: '🫐', duration: 10, steps: ['Choose a piece of fruit or nuts', 'Eat mindfully', 'Avoid distractions while eating'], subtitle: 'Quick healthy fuel.' },
-  meal_prep: { title: 'Balanced Meal Prep', category: 'NUTRITION', icon: '🥗', duration: 20, steps: ['Wash vegetables', 'Chop and assemble', 'Include protein and healthy fats'], subtitle: 'Prepare a healthy break meal.' },
-
-  // Rest Category
-  power_nap: { title: 'Power Nap', category: 'REST & RECOVERY', icon: '😴', duration: 20, steps: ['Find a dark, quiet spot', 'Set an alarm for 20 mins', 'Close your eyes', 'Wake up slowly'], subtitle: 'Deep rest for high fatigue.' },
   eye_rest: { title: 'Eye Rest 20-20-20', category: 'REST & RECOVERY', icon: '👁️', duration: 5, steps: ['Look at something 20 feet away', 'Keep focus for 20 seconds', 'Blink slowly 10 times'], subtitle: 'Reduce digital eye strain.' },
-  quiet_sitting: { title: 'Quiet Sitting', category: 'REST & RECOVERY', icon: '🪑', duration: 10, steps: ['Find a comfortable chair', 'Sit upright', 'Close eyes or gaze softly', 'Let thoughts pass by'], subtitle: 'Sit still without devices.' },
-
-  // New Move
+  hydration: { title: 'Hydration Reset', category: 'NUTRITION', icon: '💧', duration: 5, steps: ['Get a glass of water', 'Sip slowly', 'Focus on the cold sensation', 'Finish the glass'], subtitle: 'Rehydrate for better focus.' },
+  power_nap: { title: 'Power Nap', category: 'REST & RECOVERY', icon: '😴', duration: 20, steps: ['Find a dark, quiet spot', 'Set an alarm for 20 mins', 'Close your eyes', 'Wake up slowly'], subtitle: 'Deep rest for high fatigue.' },
   stretching: { title: 'Neck & Shoulder Stretch', category: 'PHYSICAL MOVEMENT', icon: '🧘‍♂️', duration: 5, steps: ['Slowly tilt head to right shoulder', 'Hold for 15s, then left side', 'Roll shoulders backward 10 times', 'Gently drop chin to chest'], subtitle: 'Release tension from long sitting.' },
   standing_stretches: { title: 'Standing Desk Stretches', category: 'PHYSICAL MOVEMENT', icon: '🧍', duration: 5, steps: ['Rise up on tip-to-tips 15 times', 'Do 10 air squats', 'Stretch each calf against a wall', 'Shake out your legs'], subtitle: 'Activate lower body while working.' },
   chest_stretch: { title: 'Doorway Chest Stretch', category: 'PHYSICAL MOVEMENT', icon: '🚪', duration: 5, steps: ['Place forearms on door frame', 'Lean forward gently', 'Hold for 30 seconds', 'Repeat 3 times'], subtitle: 'Counteract the "computer slouch".' },
-
-  // New Mind
   gratitude: { title: 'Gratitude Journaling', category: 'MINDFULNESS', icon: '✍️', duration: 5, steps: ['Grab a pen and paper', 'Write 3 things you are grateful for', 'Think about why they matter', 'Take a deep breath'], subtitle: 'Shift focus to the positive.' },
   body_scan: { title: 'Body Scan', category: 'MINDFULNESS', icon: '🔍', duration: 10, steps: ['Sit or lie down comfortably', 'Focus on your toes and move up', 'Notice any tension or comfort', 'Release tension with each exhale'], subtitle: 'Check in with physical sensations.' },
   single_tasking: { title: 'Single-Tasking Focus', category: 'MINDFULNESS', icon: '🎯', duration: 10, steps: ['Pick one small, non-work task', 'Give it 100% of your attention', 'When mind wanders, bring it back', 'Complete the task fully'], subtitle: 'Practice deep concentration.' },
-
-  // New Nutrition
   herbal_tea: { title: 'Herbal Tea Break', category: 'NUTRITION', icon: '🍵', duration: 10, steps: ['Boil fresh water', 'Choose a caffeine-free tea', 'Savor the aroma while steeping', 'Sip slowly without screens'], subtitle: 'A warm, soothing hydration ritual.' },
   mindful_chewing: { title: 'Mindful Chewing', category: 'NUTRITION', icon: '🥜', duration: 5, steps: ['Take a small bite of your snack', 'Chew slowly, noticing texture', 'Notice the flavors changing', 'Swallow before the next bite'], subtitle: 'Improve digestion and awareness.' },
   infused_water: { title: 'Fruit Infused Water', category: 'NUTRITION', icon: '🍓', duration: 5, steps: ['Slice lemon, berries or cucumber', 'Add to a large water bottle', 'Let it infuse for a few minutes', 'Enjoy the refreshing taste'], subtitle: 'Elevate your hydration game.' },
-
-  // New Rest
   digital_detox: { title: 'Digital Detox', category: 'REST & RECOVERY', icon: '📵', duration: 15, steps: ['Put phone in another room', 'Turn off your monitor', 'Look out a window or go outside', 'Let your brain idle'], subtitle: 'Completely disconnect from screens.' },
   lofi_rest: { title: 'Lo-fi Music Rest', category: 'REST & RECOVERY', icon: '🎧', duration: 10, steps: ['Put on noise-canceling headphones', 'Play a lo-fi or ambient track', 'Close your eyes', 'Let the rhythm steady your heart'], subtitle: 'Auditory relaxation.' },
   progressive_relax: { title: 'Progressive Relaxation', category: 'REST & RECOVERY', icon: '🛌', duration: 15, steps: ['Tense your feet for 5s, then release', 'Move to calves, thighs, glutes', 'Continue up to hands and face', 'Feel the total body heaviness'], subtitle: 'Systematic tension release.' }
 };
-
-const RATINGS = [
-  { label: '😫', value: 1 }, { label: '😐', value: 2 }, { label: '🙂', value: 3 }, { label: '😊', value: 4 }, { label: '🤩', value: 5 }
-];
 
 const FATIGUE_OPTIONS = [
   { label: 'Energized', emoji: '😁', value: 1 },
@@ -71,67 +49,85 @@ const STRESS_OPTIONS = [
   { label: 'High', emoji: '🤯', value: 3 },
 ];
 
+const TIME_OPTIONS = [
+  { label: '5 min', value: 5 },
+  { label: '10 min', value: 10 },
+  { label: '15 min', value: 15 },
+  { label: '20 min', value: 20 },
+  { label: '25 min', value: 25 },
+  { label: '30 min', value: 30 },
+];
+
+const RATINGS = [
+  { label: '😫', value: 1 }, { label: '😐', value: 2 }, { label: '🙂', value: 3 }, { label: '😊', value: 4 }, { label: '🤩', value: 5 }
+];
+
 export default function RecommendScreen({ navigation, route }) {
   const { user } = useUser();
-  const { checkin, sessionInfo } = route.params || {};
   const { colors } = useTheme();
   const { playRingtone, stopRingtone } = useTimer();
 
-  const [selected, setSelected] = useState(BREAK_DATA['eye_rest']);
+  const [mode, setMode] = useState('checkin');
+  const [fatigue, setFatigue] = useState(null);
+  const [stress, setStress] = useState(null);
+  const [time, setTime] = useState(10);
+
+  const [selected, setSelected] = useState(null);
   const [finalDuration, setFinalDuration] = useState(5);
-  const [secondsLeft, setSecondsLeft] = useState(300);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [rating, setRating] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [mlLog, setMlLog] = useState("");
   const [saving, setSaving] = useState(false);
-  const [mlLog, setMlLog] = useState("Initializing...");
-  const [notificationState, setNotificationState] = useState({ message: null, type: 'info' });
 
-  // FETCH RECOMMENDATION FROM ML SERVICE
-  useEffect(() => {
-    const fetchRecommendation = async () => {
-      if (!checkin) {
-        setLoading(false);
-        return;
+  // When navigating from Study Timer, auto-fill and analyze
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.checkin) {
+        setFatigue(route.params.checkin.fatigue);
+        setStress(route.params.checkin.stress);
+        setTime(route.params.checkin.time);
+        // We could auto-trigger analyze here if we want
       }
+    }, [route.params])
+  );
 
-      try {
-        setLoading(true);
-        const response = await axios.post(`${API_BASE_URL}/breaks/recommend`, {
-          fatigue: checkin.fatigue,
-          stress: checkin.stress,
-          time: checkin.time
-        });
+  const handleAnalyze = async () => {
+    if (!fatigue || !stress) {
+      Alert.alert("Selection Required", "Please select fatigue and stress levels.");
+      return;
+    }
 
-        const mlTitle = response.data.break_type;
-        let activityData = Object.values(BREAK_DATA).find(act => act.title === mlTitle);
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/breaks/recommend`, {
+        fatigue,
+        stress,
+        time
+      });
 
-        if (!activityData) {
-          activityData = BREAK_DATA['eye_rest'];
-        }
+      const mlTitle = response.data.break_type;
+      let activityData = Object.values(BREAK_DATA).find(act => act.title === mlTitle) || BREAK_DATA['eye_rest'];
 
-        setSelected(activityData);
-        setFinalDuration(response.data.duration_minutes || activityData.duration);
-        setSecondsLeft((response.data.duration_minutes || activityData.duration) * 60);
-        setMlLog(`ML Result: ${mlTitle}`);
-      } catch (error) {
-        setMlLog("ML Error: Using local fallback.");
-        setSelected(BREAK_DATA['eye_rest']);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setSelected(activityData);
+      setFinalDuration(response.data.duration_minutes || activityData.duration);
+      setSecondsLeft((response.data.duration_minutes || activityData.duration) * 60);
+      setMlLog(`ML Result: ${mlTitle}`);
+      setMode('result');
+    } catch (error) {
+      console.error(error);
+      setSelected(BREAK_DATA['eye_rest']);
+      setMode('result');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchRecommendation();
-  }, [checkin]);
-
-  // COUNTDOWN LOGIC
   useEffect(() => {
     if (timerRunning && secondsLeft > 0) {
-      const interval = setInterval(() => {
-        setSecondsLeft(prev => prev - 1);
-      }, 1000);
+      const interval = setInterval(() => setSecondsLeft(prev => prev - 1), 1000);
       return () => clearInterval(interval);
     } else if (secondsLeft === 0 && timerRunning) {
       handleFinish();
@@ -141,47 +137,41 @@ export default function RecommendScreen({ navigation, route }) {
   const handleFinish = async () => {
     setTimerRunning(false);
     setIsFinished(true);
-    setSecondsLeft(0);
     Vibration.vibrate(500);
     await playRingtone();
 
     Alert.alert(
       "Break Finished!",
-      "Time to get back to work or log your progress. Click OK to stop the alarm.",
-      [{ text: "OK", onPress: () => stopRingtone() }]
+      "Time to stop the alarm and log your progress.",
+      [{ text: "STOP ALARM", onPress: () => stopRingtone() }]
     );
-
-    setNotificationState({
-      message: 'Break complete! Feel refreshed?',
-      type: 'info'
-    });
   };
 
   const handleLogSession = async () => {
     setSaving(true);
     try {
       await stopRingtone();
-      let storedUserId = user?.id;
-      if (!storedUserId) {
-        storedUserId = await AsyncStorage.getItem('currentUserId');
-      }
+      const storedUserId = user?.id || await AsyncStorage.getItem('currentUserId');
 
       const payload = {
         user_id: storedUserId,
         break_type: selected.title,
         category: selected.category,
         duration_taken: finalDuration,
-        fatigue_before: checkin?.fatigue || 1,
-        stress_before: checkin?.stress || 1,
+        fatigue_before: fatigue,
+        stress_before: stress,
         rating: rating || 5,
-        session_number: sessionInfo?.sessionNumber || null
+        session_number: route.params?.sessionInfo?.sessionNumber || null
       };
 
       await axios.post(`${API_BASE_URL}/breaks/save`, payload);
-      Alert.alert('Success', 'Break session saved successfully!');
+      Alert.alert('Success', 'Session saved!');
+      setMode('checkin');
+      setIsFinished(false);
+      setTimerRunning(false);
       navigation.navigate('Home');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save session.');
+      Alert.alert('Error', 'Failed to save.');
     } finally {
       setSaving(false);
     }
@@ -189,131 +179,161 @@ export default function RecommendScreen({ navigation, route }) {
 
   const getLabel = (val, options) => options.find(o => o.value === val)?.label || "...";
 
-  if (!checkin) {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-        <Header />
-        <View style={styles.emptyContainer}>
-          <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
-          <Text style={{ color: colors.textPrimary, fontSize: 32, fontWeight: '900', textAlign: 'center'}}>
-            No Recommendation Yet
-          </Text>
-          <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>
-          <TouchableOpacity style={[styles.emptyLogBtn, { borderColor: colors.accent }]} onPress={() => navigation.navigate('CheckInMain')}>
-            <Text style={[styles.emptyLogBtnText, { color: colors.accent }]}>Go to Check-in</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={{ color: colors.textPrimary, marginTop: 20 }}>Consulting ML Model...</Text>
+          <Text style={{ color: colors.textPrimary, marginTop: 20 }}>Consulting ML Service...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
-  const secs = String(secondsLeft % 60).padStart(2, '0');
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header />
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
 
-        {sessionInfo?.sessionNumber && (
-          <View style={[styles.notificationBox, { backgroundColor: '#422006', borderColor: '#f97316', marginTop: 10 }]}>
-            <Text style={[styles.notificationText, { color: '#fb923c' }]}>
-              Session {sessionInfo.sessionNumber} complete! Time for your break.
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.headerContainer}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontWeight: '900' }]}>
-          Break <Text style={{ color: colors.accent }}>Rec</Text></Text>
-          <Text style={styles.headerSubtitle}>Personalized via Python ML.</Text>
-        </View>
-
-        {notificationState.message && (
-          <View style={[styles.notificationBox, { backgroundColor: '#1e3a8a', borderColor: '#3b82f6' }]}>
-            <Text style={[styles.notificationText, { color: '#60a5fa' }]}>{notificationState.message}</Text>
-          </View>
-        )}
-
-        <View style={[styles.mainActivityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={styles.categoryLabel}>{selected.category}</Text>
-          <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>{selected.icon} {selected.title}</Text>
-          <Text style={styles.activitySubtitle}>{selected.subtitle}</Text>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          {selected.steps.map((step, index) => (
-            <View key={index} style={styles.stepRow}>
-              <Text style={styles.stepNumber}>{index + 1}</Text>
-              <Text style={[styles.stepText, { color: colors.textSecondary }]}>{step}</Text>
+        {mode === 'checkin' ? (
+          <>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+                Break <Text style={{ color: colors.accent }}>Check-in</Text>
+              </Text>
+              <Text style={styles.subtitle}>Let KNN recommend the perfect break for your current state.</Text>
             </View>
-          ))}
-        </View>
 
-        {/* Transfered Live Input Vector here */}
-        <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
-          <View style={[styles.vectorContent, { backgroundColor: colors.background }]}>
-            <Text style={styles.vectorLabel}>Feature Vector (Inputs from Check-in)</Text>
-            <Text style={[styles.vectorValue, { color: colors.accent }]}>
-              [fatigue: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin.fatigue, FATIGUE_OPTIONS)}</Text>,
-               stress: <Text style={{ color: colors.textPrimary }}>{getLabel(checkin.stress, STRESS_OPTIONS)}</Text>,
-               time: <Text style={{ color: colors.textPrimary }}>{checkin.time} min</Text>]
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={styles.cardLabel}>PYTHON ML SERVICE LOG</Text>
-          <View style={styles.logDetailRow}><View style={styles.dot} /><Text style={[styles.logText, { color: colors.textSecondary }]}>In: [F:{checkin?.fatigue}, S:{checkin?.stress}, T:{checkin?.time}]</Text></View>
-          <View style={styles.logDetailRow}><View style={[styles.dot, {backgroundColor: colors.accent}]} /><Text style={[styles.logText, { color: colors.textSecondary }]}>{mlLog}</Text></View>
-        </View>
-
-        <View style={[styles.timerCard, { backgroundColor: colors.card }]}>
-          <Text style={styles.timerHeader}>BREAK TIMER</Text>
-          <Text style={[styles.timerValue, { color: colors.accent }]}>{mins}:{secs}</Text>
-          <Text style={styles.remainingText}>remaining</Text>
-          <View style={styles.timerControls}>
-            {!timerRunning && !isFinished && secondsLeft === (finalDuration * 60) ? (
-              <TouchableOpacity style={[styles.startBtn, { backgroundColor: colors.accent + '26', borderColor: colors.accent }]} onPress={() => setTimerRunning(true)}>
-                <Text style={[styles.startBtnText, { color: colors.accent }]}>Start</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.row}>
-                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.background }]} onPress={() => setTimerRunning(!timerRunning)}>
-                  <Text style={{color: colors.textPrimary, fontSize: 18}}>{timerRunning ? '⏸' : '▶'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.accent, width: 80 }]} onPress={handleFinish}>
-                  <Text style={[styles.doneBtnText, { color: '#000' }]}>Done</Text>
-                </TouchableOpacity>
+            {route.params?.sessionInfo && (
+              <View style={[styles.notificationBox, { backgroundColor: '#422006', borderColor: '#f97316', marginBottom: 20 }]}>
+                <Text style={[styles.notificationText, { color: '#fb923c' }]}>
+                  Session {route.params.sessionInfo.sessionNumber} complete!
+                </Text>
               </View>
             )}
-          </View>
-        </View>
 
-        {isFinished && (
-          <View style={[styles.feedbackCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.feedbackPrompt, { color: colors.textPrimary }]}>How refreshed do you feel?</Text>
-            <View style={styles.emojiRow}>
-              {RATINGS.map((r) => (
-                <TouchableOpacity key={r.value} onPress={() => setRating(r.value)}>
-                  <Text style={[styles.emoji, rating === r.value && styles.activeEmoji]}>{r.label}</Text>
-                </TouchableOpacity>
+            <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Fatigue Level</Text>
+                <View style={styles.chipContainer}>
+                  {FATIGUE_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setFatigue(opt.value)}
+                      style={[styles.chip, { backgroundColor: colors.background }, fatigue === opt.value && { backgroundColor: colors.accent }]}
+                    >
+                      <Text style={[styles.chipText, fatigue === opt.value && { color: '#000', fontWeight: 'bold' }]}>
+                        {opt.emoji} {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Stress Level</Text>
+                <View style={styles.chipContainer}>
+                  {STRESS_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setStress(opt.value)}
+                      style={[styles.chip, { backgroundColor: colors.background }, stress === opt.value && { backgroundColor: colors.accent }]}
+                    >
+                      <Text style={[styles.chipText, stress === opt.value && { color: '#000', fontWeight: 'bold' }]}>
+                        {opt.emoji} {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Time Available</Text>
+                <View style={styles.chipContainer}>
+                  {TIME_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setTime(opt.value)}
+                      style={[styles.chip, { backgroundColor: colors.background }, time === opt.value && { backgroundColor: colors.accent }]}
+                    >
+                      <Text style={[styles.chipText, time === opt.value && { color: '#000', fontWeight: 'bold' }]}>
+                        🕒 {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleAnalyze}>
+                <Text style={styles.actionBtnText}>Analyze & Recommend</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+                Break <Text style={{ color: colors.accent }}>Activity</Text>
+              </Text>
+              <Text style={styles.subtitle}>Personalized KNN recommendation based on your mood.</Text>
+            </View>
+
+            <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={styles.categoryLabel}>{selected.category}</Text>
+              <Text style={[styles.activityTitle, { color: colors.textPrimary }]}>{selected.icon} {selected.title}</Text>
+              <Text style={styles.activitySubtitle}>{selected.subtitle}</Text>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              {selected.steps.map((step, index) => (
+                <View key={index} style={styles.stepRow}>
+                  <Text style={styles.stepNumber}>{index + 1}</Text>
+                  <Text style={[styles.stepText, { color: colors.textSecondary }]}>{step}</Text>
+                </View>
               ))}
             </View>
-            <TouchableOpacity style={[styles.logBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]} onPress={handleLogSession} disabled={saving}>
-              {saving ? <ActivityIndicator color="#000" /> : <Text style={[styles.logBtnText, { color: '#000' }]}>Log This Session</Text>}
+
+            <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
+              <Text style={[styles.vectorValue, { color: colors.accent }]}>
+                [F:{getLabel(fatigue, FATIGUE_OPTIONS)}, S:{getLabel(stress, STRESS_OPTIONS)}, T:{time}m]
+              </Text>
+              <Text style={[styles.vectorLog, { color: colors.textSecondary }]}>{mlLog}</Text>
+            </View>
+
+            <View style={[styles.timerCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.timerValue, { color: colors.accent }]}>
+                {String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:{String(secondsLeft % 60).padStart(2, '0')}
+              </Text>
+              {!timerRunning && !isFinished && (
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={() => setTimerRunning(true)}>
+                  <Text style={styles.actionBtnText}>Start Activity Timer</Text>
+                </TouchableOpacity>
+              )}
+              {timerRunning && (
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger }]} onPress={() => setTimerRunning(false)}>
+                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pause</Text>
+                </TouchableOpacity>
+              )}
+              {isFinished && (
+                <View style={{ width: '100%', alignItems: 'center' }}>
+                  <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How refreshed do you feel?</Text>
+                  <View style={styles.emojiRow}>
+                    {RATINGS.map(r => (
+                      <TouchableOpacity key={r.value} onPress={() => setRating(r.value)}>
+                        <Text style={[styles.emoji, rating === r.value && { transform: [{scale: 1.4}] }]}>{r.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleLogSession} disabled={saving}>
+                    {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.actionBtnText}>Save & Return Home</Text>}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity onPress={() => setMode('checkin')} style={{ marginTop: 25, alignItems: 'center' }}>
+              <Text style={{ color: colors.accent, fontWeight: 'bold' }}>← Adjust Mood Selection</Text>
             </TouchableOpacity>
-          </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -322,58 +342,41 @@ export default function RecommendScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 20 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerContainer: { marginTop: 20, marginBottom: 25 },
-  headerTitle: { fontSize: 25, fontWeight: '900'},
-  headerSubtitle: { color: '#888', fontSize: 14 },
-  emptyContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 40, paddingTop: 220},
-  emptyLogBtn: { borderWidth: 1, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 10 },
-  emptyLogBtnText: { fontWeight: '600' },
-  mainActivityCard: { borderRadius: 20, padding: 25, borderWidth: 1, marginBottom: 15 },
-  categoryLabel: { color: '#a855f7', fontSize: 11, fontWeight: 'bold', marginBottom: 15, textTransform: 'uppercase' },
-  activityTitle: { fontSize: 28, fontWeight: 'bold' },
-  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 10 },
-  divider: { height: 1, marginVertical: 20 },
-  stepRow: { flexDirection: 'row', marginBottom: 12 },
-  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 15, width: 15 },
-  stepText: { fontSize: 14, flex: 1 },
-  logCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
-  cardLabel: { color: '#64748b', fontSize: 11, fontWeight: 'bold', marginBottom: 15 },
-  logDetailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#facc15', marginRight: 12 },
-  logText: { fontSize: 13, fontFamily: 'monospace' },
-  timerCard: { borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 15 },
-  timerHeader: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
-  timerValue: { fontSize: 60, fontWeight: '900', marginTop: 10 },
-  remainingText: { color: '#64748b', fontSize: 11, marginBottom: 20 },
-  timerControls: { flexDirection: 'row' },
-  row: { flexDirection: 'row', gap: 15 },
-  startBtn: { paddingHorizontal: 30, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
-  startBtnText: { fontWeight: 'bold' },
-  iconBtn: { width: 45, height: 45, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  feedbackCard: { borderRadius: 20, padding: 25, alignItems: 'center' },
-  feedbackPrompt: { fontSize: 15, fontWeight: '600', marginBottom: 15 },
-  emojiRow: { flexDirection: 'row', gap: 20, marginBottom: 25 },
-  emoji: { fontSize: 35 },
-  activeEmoji: { transform: [{ scale: 1.3 }] },
-  logBtn: { width: '100%', paddingVertical: 15, borderRadius: 15, alignItems: 'center', borderWidth: 1 },
-  logBtnText: { fontWeight: 'bold', fontSize: 16 },
-  doneBtnText: { fontWeight: 'bold', fontSize: 14 },
+  titleContainer: { marginBottom: 20 },
+  title: { fontSize: 25, fontWeight: '900' },
+  subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
+  mainCard: { borderRadius: 20, padding: 20, borderWidth: 1, marginBottom: 15 },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 12 },
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
+  chipText: { color: '#94a3b8', fontSize: 12 },
+  actionBtn: { paddingVertical: 16, borderRadius: 16, alignItems: 'center', width: '100%', marginTop: 10 },
+  actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+  categoryLabel: { color: '#a855f7', fontSize: 10, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase' },
+  activityTitle: { fontSize: 26, fontWeight: 'bold' },
+  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 8 },
+  divider: { height: 1, marginVertical: 15 },
+  stepRow: { flexDirection: 'row', marginBottom: 10 },
+  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 12 },
+  stepText: { fontSize: 13, flex: 1, lineHeight: 18 },
+  vectorCard: { borderRadius: 20, padding: 18, marginBottom: 15, borderWidth: 1 },
+  vectorTitle: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginBottom: 8 },
+  vectorValue: { fontSize: 13, fontFamily: 'monospace' },
+  vectorLog: { fontSize: 11, marginTop: 5, fontStyle: 'italic' },
+  timerCard: { borderRadius: 20, padding: 20, alignItems: 'center' },
+  timerValue: { fontSize: 52, fontWeight: '900', marginBottom: 20 },
+  emojiRow: { flexDirection: 'row', gap: 15, marginBottom: 25 },
+  emoji: { fontSize: 34 },
   notificationBox: {
     padding: 16,
     borderRadius: 16,
-    marginBottom: 20,
     borderWidth: 1,
     alignItems: 'center',
   },
   notificationText: {
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  vectorCard: { borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1 },
-  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
-  vectorContent: { padding: 15, borderRadius: 12 },
-  vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
-  vectorValue: { fontSize: 14 }
+  }
 });

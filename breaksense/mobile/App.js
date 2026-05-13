@@ -61,8 +61,7 @@ function CustomDrawerContent(props) {
   const navigationItems = [
     { label: 'Home', subtitle: 'Dashboard & analytics', route: 'Home' },
     { label: 'Study Timer', subtitle: 'Pomodoro focus sessions', route: 'Study Timer' },
-    { label: 'Check-in', subtitle: 'Log fatigue & stress', route: 'Check-in' },
-    { label: 'Recommendation', subtitle: 'Your KNN break activity', route: 'Recommendation' },
+    { label: 'Recommendation', subtitle: 'KNN Mood Check-in', route: 'Recommendation' },
     { label: 'Library', subtitle: '24 guided activities', route: 'Library' },
     { label: 'Logs', subtitle: 'Your session history', route: 'Logs' },
   ];
@@ -171,7 +170,6 @@ function DrawerScreens() {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Study Timer" component={StudyTimerScreen} />
-      <Drawer.Screen name="Check-in" component={CheckInStack} />
       <Drawer.Screen name="Recommendation" component={RecommendScreen} />
       <Drawer.Screen name="Library" component={LibraryScreen} />
       <Drawer.Screen name="Logs" component={StatsScreen} />

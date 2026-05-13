@@ -40,7 +40,11 @@ router.delete('/history', async (req, res) => {
 router.post('/save', async (req, res) => {
     const connection = await pool.getConnection();
     try {
-        const { break_type, category, duration_taken, fatigue_before, stress_before, rating, user_id, userId } = req.body;
+        const {
+            break_type, category, duration_taken,
+            fatigue_before, stress_before, rating,
+            user_id, userId, session_number
+        } = req.body;
         const uId = user_id || userId;
 
         if (!uId || !break_type || !category) {
@@ -49,9 +53,9 @@ router.post('/save', async (req, res) => {
 
         await connection.beginTransaction();
         await connection.query(`
-            INSERT INTO breaks_history (user_id, break_type, category, duration_taken, fatigue_before, stress_before, rating, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-        `, [parseInt(uId), break_type, category, duration_taken, fatigue_before, stress_before, rating]);
+            INSERT INTO breaks_history (user_id, break_type, category, duration_taken, fatigue_before, stress_before, rating, session_number, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `, [parseInt(uId), break_type, category, duration_taken, fatigue_before, stress_before, rating, session_number]);
 
         await connection.commit();
         res.status(200).json({ success: true, message: 'Break saved successfully' });
@@ -96,9 +100,9 @@ router.get('/stats', async (req, res) => {
 
         const [statsRows] = await pool.query(`
             SELECT
-                COUNT(*) as totalBreaks,
-                IFNULL(AVG(rating), 0) as avgScore,
-                IFNULL(MAX(rating), 0) as bestScore,
+                SUM(CASE WHEN category != 'Focus Time' THEN 1 ELSE 0 END) as totalBreaks,
+                IFNULL(AVG(CASE WHEN category != 'Focus Time' THEN rating END), 0) as avgScore,
+                IFNULL(MAX(CASE WHEN category != 'Focus Time' THEN rating END), 0) as bestScore,
                 SUM(CASE WHEN category LIKE '%PHYSICAL%' OR category LIKE '%MOVE%' THEN 1 ELSE 0 END) as countPhysical,
                 SUM(CASE WHEN category LIKE '%MIND%' THEN 1 ELSE 0 END) as countMind,
                 SUM(CASE WHEN category LIKE '%NUTRITION%' THEN 1 ELSE 0 END) as countNutrition,
@@ -109,7 +113,8 @@ router.get('/stats', async (req, res) => {
 
         const [topCatRows] = await pool.query(`
             SELECT category FROM breaks_history
-            WHERE user_id = ? GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
+            WHERE user_id = ? AND category != 'Focus Time'
+            GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
         const [userRows] = await pool.query('SELECT SessionsToday, TotalStudyTimeToday, DayStreak FROM users WHERE id = ?', [uId]);

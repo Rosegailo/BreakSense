@@ -149,7 +149,13 @@ export default function HomeScreen() {
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Top Category</Text>
-              <Text style={[styles.statValue, { color: '#FACC15', fontSize: 13, fontFamily: 'Inter' }]}>{stats.topCategory || 'None'}</Text>
+              <Text style={[styles.statValue, {
+                color: (stats.topCategory && stats.topCategory !== 'None') ? '#FACC15' : colors.textSecondary,
+                fontSize: 13,
+                fontFamily: 'Inter'
+              }]}>
+                {(!stats.topCategory || stats.topCategory === 'None') ? 'No Breaks Yet' : stats.topCategory}
+              </Text>
             </View>
           </View>
           <View style={styles.row}>

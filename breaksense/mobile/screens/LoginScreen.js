@@ -21,9 +21,14 @@ export default function LoginScreen({ navigation, onLogin }) {
   });
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password.');
+      return;
+    }
+
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -34,12 +39,11 @@ export default function LoginScreen({ navigation, onLogin }) {
 
         // 2. Call the onLogin function passed from App.js
         onLogin(response.data.user); 
-      } else {
-        Alert.alert('Login Failed', response.data.message);
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      console.error("Login Error:", error.response?.data || error.message);
+      const serverMessage = error.response?.data?.message || 'Something went wrong. Please check your internet and try again.';
+      Alert.alert('Login Failed', serverMessage);
     }
   };
 

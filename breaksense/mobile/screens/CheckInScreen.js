@@ -43,7 +43,7 @@ export default function CheckInScreen({ navigation, route }) {
       if (route.params?.reset) {
         setFatigue(null);
         setStress(null);
-        setTime(10);
+        setTime(null);
         navigation.setParams({ reset: false });
       }
     }, [route.params])

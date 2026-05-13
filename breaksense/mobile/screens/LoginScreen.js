@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';
@@ -41,7 +41,12 @@ export default function LoginScreen({ navigation, onLogin }) {
         onLogin(response.data.user); 
       } else {
         // Fallback for success: false even with 200 status
-        Alert.alert('Login Failed', response.data.message || 'Invalid credentials');
+        const msg = response.data.message || 'Invalid credentials';
+        if (Platform.OS === 'web') {
+          window.alert(`Login Failed: ${msg}`);
+        } else {
+          Alert.alert('Login Failed', msg);
+        }
       }
     } catch (error) {
       console.error("Login Error Detail:", error.response?.data || error.message);
@@ -57,7 +62,11 @@ export default function LoginScreen({ navigation, onLogin }) {
         errorMessage = "Cannot connect to server. Please check if your backend is running.";
       }
 
-      Alert.alert('Login Failed', errorMessage);
+      if (Platform.OS === 'web') {
+        window.alert(`Login Failed: ${errorMessage}`);
+      } else {
+        Alert.alert('Login Failed', errorMessage);
+      }
     }
   };
 

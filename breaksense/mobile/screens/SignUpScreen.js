@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';
@@ -19,7 +19,9 @@ export default function SignUpScreen({ navigation, onLogin }) {
   const handleEmailSignUp = async () => {
     try {
       if (!form.firstName || !form.lastName || !form.email || !form.password) {
-        Alert.alert('Error', 'Please fill in all fields.');
+        const msg = 'Please fill in all fields.';
+        if (Platform.OS === 'web') window.alert(msg);
+        else Alert.alert('Error', msg);
         return;
       }
 
@@ -30,15 +32,16 @@ export default function SignUpScreen({ navigation, onLogin }) {
       const hasUpper = /[A-Z]/.test(form.password);
 
       if (form.password.length < minLength || !hasNumber || !hasSpecial || !hasUpper) {
-        Alert.alert(
-          'Weak Password',
-          'Your password must have:\n• At least 8 characters\n• At least one uppercase letter\n• At least one number\n• At least one special character'
-        );
+        const msg = 'Your password must have:\n• At least 8 characters\n• At least one uppercase letter\n• At least one number\n• At least one special character';
+        if (Platform.OS === 'web') window.alert(`Weak Password: ${msg}`);
+        else Alert.alert('Weak Password', msg);
         return;
       }
 
       if (!agreed) {
-        Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy.');
+        const msg = 'Please agree to the Terms of Service and Privacy Policy.';
+        if (Platform.OS === 'web') window.alert(msg);
+        else Alert.alert('Error', msg);
         return;
       }
 
@@ -50,7 +53,10 @@ export default function SignUpScreen({ navigation, onLogin }) {
       };
 
       await axios.post(`${API_BASE_URL}/auth/signup`, userData);
-      Alert.alert('Success', 'Account created!');
+
+      const successMsg = 'Account created!';
+      if (Platform.OS === 'web') window.alert(successMsg);
+      else Alert.alert('Success', successMsg);
 
       if (onLogin) {
         onLogin({
@@ -66,7 +72,8 @@ export default function SignUpScreen({ navigation, onLogin }) {
       const serverMessage = error.response?.data?.message;
       const errorMessage = serverMessage || 'Registration failed. Make sure your password has 8+ chars, 1 uppercase, 1 number, and 1 special char.';
 
-      Alert.alert('Registration Issue', errorMessage);
+      if (Platform.OS === 'web') window.alert(`Registration Issue: ${errorMessage}`);
+      else Alert.alert('Registration Issue', errorMessage);
     }
   };
 

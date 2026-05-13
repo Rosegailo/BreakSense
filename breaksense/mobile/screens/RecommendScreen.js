@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, Alert, ActivityIndicator, Vibration
@@ -10,7 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTimer } from '../context/TimerContext';
-import { useFocusEffect } from '@react-navigation/native';
 
 const BREAK_DATA = {
   sun_salutation: { title: 'Sun Salutation', category: 'PHYSICAL MOVEMENT', icon: '🧘', duration: 10, steps: ['Stand palms together at chest', 'Inhale arms up, exhale fold', 'Plank - upward dog', 'Downward dog & breath 3x'], subtitle: 'Yoga sequence linking breath and movement.' },
@@ -49,15 +48,6 @@ const STRESS_OPTIONS = [
   { label: 'High', emoji: '🤯', value: 3 },
 ];
 
-const TIME_OPTIONS = [
-  { label: '5 min', value: 5 },
-  { label: '10 min', value: 10 },
-  { label: '15 min', value: 15 },
-  { label: '20 min', value: 20 },
-  { label: '25 min', value: 25 },
-  { label: '30 min', value: 30 },
-];
-
 const RATINGS = [
   { label: '😫', value: 1 }, { label: '😐', value: 2 }, { label: '🙂', value: 3 }, { label: '😊', value: 4 }, { label: '🤩', value: 5 }
 ];
@@ -67,11 +57,10 @@ export default function RecommendScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { playRingtone, stopRingtone } = useTimer();
 
-  const [mode, setMode] = useState('checkin');
-  const [fatigue, setFatigue] = useState(null);
-  const [stress, setStress] = useState(null);
-  const [time, setTime] = useState(10);
+  // Inputs from navigation
+  const { checkin, sessionInfo } = route.params || {};
 
+  // Local State to keep the recommendation visible even if params change or screen blurred
   const [selected, setSelected] = useState(null);
   const [finalDuration, setFinalDuration] = useState(5);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -82,30 +71,20 @@ export default function RecommendScreen({ navigation, route }) {
   const [mlLog, setMlLog] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // When navigating from Study Timer, auto-fill and analyze
-  useFocusEffect(
-    useCallback(() => {
-      if (route.params?.checkin) {
-        setFatigue(route.params.checkin.fatigue);
-        setStress(route.params.checkin.stress);
-        setTime(route.params.checkin.time);
-        // We could auto-trigger analyze here if we want
-      }
-    }, [route.params])
-  );
-
-  const handleAnalyze = async () => {
-    if (!fatigue || !stress) {
-      Alert.alert("Selection Required", "Please select fatigue and stress levels.");
-      return;
+  // Fetch recommendation when checkin params arrive
+  useEffect(() => {
+    if (checkin) {
+      fetchRecommendation();
     }
+  }, [checkin]);
 
+  const fetchRecommendation = async () => {
     try {
       setLoading(true);
       const response = await axios.post(`${API_BASE_URL}/breaks/recommend`, {
-        fatigue,
-        stress,
-        time
+        fatigue: checkin.fatigue,
+        stress: checkin.stress,
+        time: checkin.time
       });
 
       const mlTitle = response.data.break_type;
@@ -115,11 +94,13 @@ export default function RecommendScreen({ navigation, route }) {
       setFinalDuration(response.data.duration_minutes || activityData.duration);
       setSecondsLeft((response.data.duration_minutes || activityData.duration) * 60);
       setMlLog(`ML Result: ${mlTitle}`);
-      setMode('result');
+      setIsFinished(false);
+      setTimerRunning(false);
+      setRating(null);
     } catch (error) {
       console.error(error);
       setSelected(BREAK_DATA['eye_rest']);
-      setMode('result');
+      setSecondsLeft(300);
     } finally {
       setLoading(false);
     }
@@ -158,17 +139,21 @@ export default function RecommendScreen({ navigation, route }) {
         break_type: selected.title,
         category: selected.category,
         duration_taken: finalDuration,
-        fatigue_before: fatigue,
-        stress_before: stress,
+        fatigue_before: checkin?.fatigue || 1,
+        stress_before: checkin?.stress || 1,
         rating: rating || 5,
-        session_number: route.params?.sessionInfo?.sessionNumber || null
+        session_number: sessionInfo?.sessionNumber || null
       };
 
       await axios.post(`${API_BASE_URL}/breaks/save`, payload);
       Alert.alert('Success', 'Session saved!');
-      setMode('checkin');
+
+      // Reset for next time
+      setSelected(null);
       setIsFinished(false);
-      setTimerRunning(false);
+
+      // Reset the Check-in form and go Home
+      navigation.navigate('Check-in', { reset: true });
       navigation.navigate('Home');
     } catch (error) {
       Alert.alert('Error', 'Failed to save.');
@@ -184,7 +169,7 @@ export default function RecommendScreen({ navigation, route }) {
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={{ color: colors.textPrimary, marginTop: 20 }}>Consulting ML Service...</Text>
+          <Text style={{ color: colors.textPrimary, marginTop: 20 }}>Analyzing mood vector...</Text>
         </View>
       </SafeAreaView>
     );
@@ -195,87 +180,27 @@ export default function RecommendScreen({ navigation, route }) {
       <Header />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
 
-        {mode === 'checkin' ? (
-          <>
-            <View style={styles.titleContainer}>
-              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-                Break <Text style={{ color: colors.accent }}>Check-in</Text>
-              </Text>
-              <Text style={styles.subtitle}>Let KNN recommend the perfect break for your current state.</Text>
-            </View>
-
-            {route.params?.sessionInfo && (
-              <View style={[styles.notificationBox, { backgroundColor: '#422006', borderColor: '#f97316', marginBottom: 20 }]}>
-                <Text style={[styles.notificationText, { color: '#fb923c' }]}>
-                  Session {route.params.sessionInfo.sessionNumber} complete!
-                </Text>
-              </View>
-            )}
-
-            <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>1. Fatigue Level</Text>
-                <View style={styles.chipContainer}>
-                  {FATIGUE_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value}
-                      onPress={() => setFatigue(opt.value)}
-                      style={[styles.chip, { backgroundColor: colors.background }, fatigue === opt.value && { backgroundColor: colors.accent }]}
-                    >
-                      <Text style={[styles.chipText, fatigue === opt.value && { color: '#000', fontWeight: 'bold' }]}>
-                        {opt.emoji} {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>2. Stress Level</Text>
-                <View style={styles.chipContainer}>
-                  {STRESS_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value}
-                      onPress={() => setStress(opt.value)}
-                      style={[styles.chip, { backgroundColor: colors.background }, stress === opt.value && { backgroundColor: colors.accent }]}
-                    >
-                      <Text style={[styles.chipText, stress === opt.value && { color: '#000', fontWeight: 'bold' }]}>
-                        {opt.emoji} {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>3. Time Available</Text>
-                <View style={styles.chipContainer}>
-                  {TIME_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value}
-                      onPress={() => setTime(opt.value)}
-                      style={[styles.chip, { backgroundColor: colors.background }, time === opt.value && { backgroundColor: colors.accent }]}
-                    >
-                      <Text style={[styles.chipText, time === opt.value && { color: '#000', fontWeight: 'bold' }]}>
-                        🕒 {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleAnalyze}>
-                <Text style={styles.actionBtnText}>Analyze & Recommend</Text>
-              </TouchableOpacity>
-            </View>
-          </>
+        {!selected ? (
+          <View style={styles.emptyContainer}>
+            <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
+            <Text style={{ color: colors.textPrimary, fontSize: 32, fontWeight: '900', textAlign: 'center'}}>
+              No Recommendation Yet
+            </Text>
+            <Text style={styles.subtitle}>Complete your Mood Check-in first to get started.</Text>
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.accent, marginTop: 30 }]}
+              onPress={() => navigation.navigate('Check-in')}
+            >
+              <Text style={styles.actionBtnText}>Go to Check-in</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <View style={styles.titleContainer}>
               <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-                Break <Text style={{ color: colors.accent }}>Activity</Text>
+                Your <Text style={{ color: colors.accent }}>Break</Text>
               </Text>
-              <Text style={styles.subtitle}>Personalized KNN recommendation based on your mood.</Text>
+              <Text style={styles.subtitle}>KNN matched this activity for you.</Text>
             </View>
 
             <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -294,7 +219,7 @@ export default function RecommendScreen({ navigation, route }) {
             <View style={[styles.vectorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.vectorTitle}>LIVE INPUT VECTOR</Text>
               <Text style={[styles.vectorValue, { color: colors.accent }]}>
-                [F:{getLabel(fatigue, FATIGUE_OPTIONS)}, S:{getLabel(stress, STRESS_OPTIONS)}, T:{time}m]
+                [F:{getLabel(checkin?.fatigue, FATIGUE_OPTIONS)}, S:{getLabel(checkin?.stress, STRESS_OPTIONS)}, T:{checkin?.time}m]
               </Text>
               <Text style={[styles.vectorLog, { color: colors.textSecondary }]}>{mlLog}</Text>
             </View>
@@ -305,7 +230,7 @@ export default function RecommendScreen({ navigation, route }) {
               </Text>
               {!timerRunning && !isFinished && (
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={() => setTimerRunning(true)}>
-                  <Text style={styles.actionBtnText}>Start Activity Timer</Text>
+                  <Text style={styles.actionBtnText}>Start Break Activity</Text>
                 </TouchableOpacity>
               )}
               {timerRunning && (
@@ -315,7 +240,7 @@ export default function RecommendScreen({ navigation, route }) {
               )}
               {isFinished && (
                 <View style={{ width: '100%', alignItems: 'center' }}>
-                  <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How refreshed do you feel?</Text>
+                  <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How was it?</Text>
                   <View style={styles.emojiRow}>
                     {RATINGS.map(r => (
                       <TouchableOpacity key={r.value} onPress={() => setRating(r.value)}>
@@ -324,15 +249,11 @@ export default function RecommendScreen({ navigation, route }) {
                     ))}
                   </View>
                   <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.accent }]} onPress={handleLogSession} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.actionBtnText}>Save & Return Home</Text>}
+                    {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.actionBtnText}>Save & Done</Text>}
                   </TouchableOpacity>
                 </View>
               )}
             </View>
-
-            <TouchableOpacity onPress={() => setMode('checkin')} style={{ marginTop: 25, alignItems: 'center' }}>
-              <Text style={{ color: colors.accent, fontWeight: 'bold' }}>← Adjust Mood Selection</Text>
-            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -343,40 +264,26 @@ export default function RecommendScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 },
   titleContainer: { marginBottom: 20 },
   title: { fontSize: 25, fontWeight: '900' },
-  subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
+  subtitle: { color: '#888', fontSize: 13, marginTop: 5, textAlign: 'center' },
   mainCard: { borderRadius: 20, padding: 20, borderWidth: 1, marginBottom: 15 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 12 },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
-  chipText: { color: '#94a3b8', fontSize: 12 },
-  actionBtn: { paddingVertical: 16, borderRadius: 16, alignItems: 'center', width: '100%', marginTop: 10 },
-  actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
   categoryLabel: { color: '#a855f7', fontSize: 10, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase' },
   activityTitle: { fontSize: 26, fontWeight: 'bold' },
-  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 8 },
+  activitySubtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   divider: { height: 1, marginVertical: 15 },
   stepRow: { flexDirection: 'row', marginBottom: 10 },
-  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 12 },
+  stepNumber: { color: '#a855f7', fontWeight: 'bold', marginRight: 10 },
   stepText: { fontSize: 13, flex: 1, lineHeight: 18 },
+  actionBtn: { paddingVertical: 16, borderRadius: 16, alignItems: 'center', width: '100%', marginTop: 10 },
+  actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
   vectorCard: { borderRadius: 20, padding: 18, marginBottom: 15, borderWidth: 1 },
-  vectorTitle: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginBottom: 8 },
+  vectorTitle: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
   vectorValue: { fontSize: 13, fontFamily: 'monospace' },
   vectorLog: { fontSize: 11, marginTop: 5, fontStyle: 'italic' },
   timerCard: { borderRadius: 20, padding: 20, alignItems: 'center' },
-  timerValue: { fontSize: 52, fontWeight: '900', marginBottom: 20 },
-  emojiRow: { flexDirection: 'row', gap: 15, marginBottom: 25 },
-  emoji: { fontSize: 34 },
-  notificationBox: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  notificationText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  }
+  timerValue: { fontSize: 52, fontWeight: '900', marginBottom: 15 },
+  emojiRow: { flexDirection: 'row', gap: 15, marginBottom: 20 },
+  emoji: { fontSize: 30 }
 });

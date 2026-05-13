@@ -31,16 +31,6 @@ const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
 
-// Check-in stack
-function CheckInStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CheckInMain" component={CheckInScreen} />
-      <Stack.Screen name="Recommend" component={RecommendScreen} />
-    </Stack.Navigator>
-  );
-}
-
 // Custom Drawer Content with Footer
 function CustomDrawerContent(props) {
   const { user, setUser } = useUser();
@@ -61,7 +51,8 @@ function CustomDrawerContent(props) {
   const navigationItems = [
     { label: 'Home', subtitle: 'Dashboard & analytics', route: 'Home' },
     { label: 'Study Timer', subtitle: 'Pomodoro focus sessions', route: 'Study Timer' },
-    { label: 'Recommendation', subtitle: 'KNN Mood Check-in', route: 'Recommendation' },
+    { label: 'Check-in', subtitle: 'Log fatigue & stress', route: 'Check-in' },
+    { label: 'Recommendation', subtitle: 'Your KNN break activity', route: 'Recommendation' },
     { label: 'Library', subtitle: '24 guided activities', route: 'Library' },
     { label: 'Logs', subtitle: 'Your session history', route: 'Logs' },
   ];
@@ -170,6 +161,7 @@ function DrawerScreens() {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Study Timer" component={StudyTimerScreen} />
+      <Drawer.Screen name="Check-in" component={CheckInScreen} />
       <Drawer.Screen name="Recommendation" component={RecommendScreen} />
       <Drawer.Screen name="Library" component={LibraryScreen} />
       <Drawer.Screen name="Logs" component={StatsScreen} />

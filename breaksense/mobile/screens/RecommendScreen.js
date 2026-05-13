@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, Alert, ActivityIndicator, Vibration
 } from 'react-native';
 import axios from 'axios';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { API_BASE_URL } from '../Config';
 import Header from './components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+import { useTimer } from '../context/TimerContext';
 
 const BREAK_DATA = {
   // Move Category
@@ -63,6 +61,7 @@ export default function RecommendScreen({ navigation, route }) {
   const { user } = useUser();
   const { checkin, sessionInfo } = route.params || {};
   const { colors } = useTheme();
+  const { playRingtone, stopRingtone } = useTimer();
 
   const [selected, setSelected] = useState(BREAK_DATA['eye_rest']);
   const [finalDuration, setFinalDuration] = useState(5);
@@ -73,6 +72,7 @@ export default function RecommendScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mlLog, setMlLog] = useState("Initializing...");
+  const [notificationState, setNotificationState] = useState({ message: null, type: 'info' });
 
   // FETCH RECOMMENDATION FROM ML SERVICE
   useEffect(() => {
@@ -91,12 +91,9 @@ export default function RecommendScreen({ navigation, route }) {
         });
 
         const mlTitle = response.data.break_type;
-
-        // Find activity by title in BREAK_DATA
         let activityData = Object.values(BREAK_DATA).find(act => act.title === mlTitle);
 
         if (!activityData) {
-          console.log(`ML Title "${mlTitle}" not found in BREAK_DATA, using fallback.`);
           activityData = BREAK_DATA['eye_rest'];
         }
 
@@ -105,7 +102,6 @@ export default function RecommendScreen({ navigation, route }) {
         setSecondsLeft((response.data.duration_minutes || activityData.duration) * 60);
         setMlLog(`ML Result: ${mlTitle}`);
       } catch (error) {
-        console.error("Failed to fetch ML recommendation:", error);
         setMlLog("ML Error: Using local fallback.");
         setSelected(BREAK_DATA['eye_rest']);
       } finally {
@@ -128,36 +124,26 @@ export default function RecommendScreen({ navigation, route }) {
     }
   }, [timerRunning, secondsLeft]);
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     setTimerRunning(false);
     setIsFinished(true);
     setSecondsLeft(0);
     Vibration.vibrate(500);
+    await playRingtone();
 
-    // Show Break End Notification
-    AsyncStorage.getItem('settings_breakAlerts').then(val => {
-      if (val === 'true' || val === null) {
-        setNotificationState({
-          message: 'Break complete! Feel refreshed?',
-          type: 'info'
-        });
-      }
+    setNotificationState({
+      message: 'Break complete! Feel refreshed?',
+      type: 'info'
     });
   };
-
-  const [notificationState, setNotificationState] = useState({ message: null, type: 'info' });
 
   const handleLogSession = async () => {
     setSaving(true);
     try {
+      await stopRingtone();
       let storedUserId = user?.id;
       if (!storedUserId) {
         storedUserId = await AsyncStorage.getItem('currentUserId');
-      }
-
-      if (!storedUserId) {
-        Alert.alert('Error', 'User ID not found. Please log in again.');
-        return;
       }
 
       const payload = {
@@ -175,7 +161,6 @@ export default function RecommendScreen({ navigation, route }) {
       Alert.alert('Success', 'Break session saved successfully!');
       navigation.navigate('Home');
     } catch (error) {
-      console.error('Error logging session:', error);
       Alert.alert('Error', 'Failed to save session.');
     } finally {
       setSaving(false);
@@ -188,7 +173,7 @@ export default function RecommendScreen({ navigation, route }) {
         <Header />
         <View style={styles.emptyContainer}>
           <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
-          <Text style={{ color: colors.textPrimary, fontSize: 32, fontWeight: '900', fontFamily: 'Syne-ExtraBold', textAlign: 'center'}}>
+          <Text style={{ color: colors.textPrimary, fontSize: 32, fontWeight: '900', textAlign: 'center'}}>
             No Recommendation Yet
           </Text>
           <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>
@@ -211,16 +196,25 @@ export default function RecommendScreen({ navigation, route }) {
     );
   }
 
-  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
-  const seconds = String(secondsLeft % 60).padStart(2, '0');
+  const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const secs = String(secondsLeft % 60).padStart(2, '0');
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-<Header />
- <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Header />
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {sessionInfo?.sessionNumber && (
+          <View style={[styles.notificationBox, { backgroundColor: '#422006', borderColor: '#f97316', marginTop: 10 }]}>
+            <Text style={[styles.notificationText, { color: '#fb923c' }]}>
+              Session {sessionInfo.sessionNumber} complete! Time for your break.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.headerContainer}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-          Break <Text style={{ color: colors.accent, fontFamily: 'Syne-ExtraBold' }}>Rec</Text></Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontWeight: '900' }]}>
+          Break <Text style={{ color: colors.accent }}>Rec</Text></Text>
           <Text style={styles.headerSubtitle}>Personalized via Python ML.</Text>
         </View>
 
@@ -251,7 +245,7 @@ export default function RecommendScreen({ navigation, route }) {
 
         <View style={[styles.timerCard, { backgroundColor: colors.card }]}>
           <Text style={styles.timerHeader}>BREAK TIMER</Text>
-          <Text style={[styles.timerValue, { color: colors.accent }]}>{minutes}:{seconds}</Text>
+          <Text style={[styles.timerValue, { color: colors.accent }]}>{mins}:{secs}</Text>
           <Text style={styles.remainingText}>remaining</Text>
           <View style={styles.timerControls}>
             {!timerRunning && !isFinished && secondsLeft === (finalDuration * 60) ? (

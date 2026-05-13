@@ -33,6 +33,16 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
+  const stopRingtone = async () => {
+    try {
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+      }
+    } catch (error) {
+      console.log('Error stopping sound:', error);
+    }
+  };
+
   const saveStudyLog = async (duration) => {
     try {
       const userId = await AsyncStorage.getItem('currentUserId');
@@ -95,7 +105,7 @@ export const TimerProvider = ({ children }) => {
       setIsRunning(false);
       await saveStudyLog(timeSpentMinutes);
 
-      // Reset logic
+      // Prepare for next session
       if (currentSession < totalSessions) {
         setCurrentSession(prev => prev + 1);
       } else {
@@ -123,7 +133,8 @@ export const TimerProvider = ({ children }) => {
       currentSession, setCurrentSession,
       totalSessions, setTotalSessions,
       startTimer, stopTimer, resetTimer,
-      timerComplete, setTimerComplete
+      timerComplete, setTimerComplete,
+      playRingtone, stopRingtone
     }}>
       {children}
     </TimerContext.Provider>

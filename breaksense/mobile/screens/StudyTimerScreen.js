@@ -220,7 +220,28 @@ export default function StudyTimerScreen({ navigation }) {
           </View>
 
           <View style={styles.controlsRow}>
-            {!isRunning ? (
+            {isRunning ? (
+              <TouchableOpacity
+                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
+                onPress={handleReset}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="stop" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Session</Text>
+              </TouchableOpacity>
+            ) : timerComplete ? (
+              <TouchableOpacity
+                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
+                onPress={async () => {
+                   await stopRingtone();
+                   // The Alert is likely already visible, but this provides a physical button too
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="notifications-off" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Alarm</Text>
+              </TouchableOpacity>
+            ) : (
               <TouchableOpacity
                 style={styles.startBtn}
                 onPress={handleStart}
@@ -228,15 +249,6 @@ export default function StudyTimerScreen({ navigation }) {
               >
                 <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
                 <Text style={styles.startBtnText}>Start Study Session</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
-                onPress={handleReset}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="stop" size={16} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Alarm</Text>
               </TouchableOpacity>
             )}
           </View>

@@ -109,13 +109,19 @@ export default function RecommendScreen({ navigation, route }) {
     setTimerRunning(false);
     setIsFinished(true);
     Vibration.vibrate(500);
-    await playRingtone();
 
-    Alert.alert(
-      "Break Finished!",
-      "Time to stop the alarm and log your progress.",
-      [{ text: "STOP ALARM", onPress: () => stopRingtone() }]
-    );
+    // Only play ringtone if the timer actually hit zero
+    if (secondsLeft <= 0) {
+      await playRingtone();
+      Alert.alert(
+        "Break Finished!",
+        "Time to stop the alarm and log your progress.",
+        [{ text: "STOP ALARM", onPress: () => stopRingtone() }]
+      );
+    } else {
+      // If user clicked "Stop Alarm" (Stop Early)
+      await stopRingtone();
+    }
   };
 
   const handleLogSession = async () => {

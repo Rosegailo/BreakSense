@@ -166,6 +166,7 @@ export const TimerProvider = ({ children }) => {
     const timeSpentMinutes = Math.max(1, Math.floor(secondsSpent / 60));
 
     setIsRunning(false);
+    await stopRingtone(); // Ensure sound stops
     await saveStudyLog(timeSpentMinutes);
     advanceSession();
 
@@ -174,6 +175,7 @@ export const TimerProvider = ({ children }) => {
 
   const resetTimer = () => {
     setIsRunning(false);
+    stopRingtone(); // Ensure sound stops
     setTimeLeft(sessionDuration * 60);
     setTimerComplete(false);
   };

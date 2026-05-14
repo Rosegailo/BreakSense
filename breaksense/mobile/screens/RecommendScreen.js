@@ -29,6 +29,10 @@ const BREAK_DATA = {
   herbal_tea: { title: 'Herbal Tea Break', category: 'NUTRITION', icon: '🍵', duration: 10, steps: ['Boil fresh water', 'Choose a caffeine-free tea', 'Savor the aroma while steeping', 'Sip slowly without screens'], subtitle: 'A warm, soothing hydration ritual.' },
   mindful_chewing: { title: 'Mindful Chewing', category: 'NUTRITION', icon: '🥜', duration: 5, steps: ['Take a small bite of your snack', 'Chew slowly, noticing texture', 'Notice the flavors changing', 'Swallow before the next bite'], subtitle: 'Improve digestion and awareness.' },
   infused_water: { title: 'Fruit Infused Water', category: 'NUTRITION', icon: '🍓', duration: 5, steps: ['Slice lemon, berries or cucumber', 'Add to a large water bottle', 'Let it infuse for a few minutes', 'Enjoy the refreshing taste'], subtitle: 'Elevate your hydration game.' },
+  brain_snack: { title: 'Brain Snack', category: 'NUTRITION', icon: '🥜', duration: 10, steps: ['Grab a handful of nuts or seeds', 'Avoid sugary snacks', 'Focus on the energy boost', 'Notice your hunger levels'], subtitle: 'Fuel your brain with healthy fats.' },
+  meal_prep: { title: 'Balanced Meal Prep', category: 'NUTRITION', icon: '🥗', duration: 20, steps: ['Combine protein, healthy fats, and fiber', 'Prep your next meal mindfully', 'Avoid distractions while prepping', 'Clean as you go'], subtitle: 'Support long-term focus with nutrition.' },
+  visualization: { title: 'Visualization', category: 'MINDFULNESS', icon: '🌈', duration: 10, steps: ['Close your eyes', 'Imagine a peaceful place in detail', 'Focus on the sights and sounds', 'Take 5 deep breaths in this space'], subtitle: 'A mental escape to reduce stress.' },
+  quiet_sitting: { title: 'Quiet Sitting', category: 'REST & RECOVERY', icon: '🪑', duration: 10, steps: ['Sit comfortably with eyes closed', 'Hands resting on your lap', 'Notice your breath without changing it', 'Simply exist for a few minutes'], subtitle: 'Reset your mind through stillness.' },
   digital_detox: { title: 'Digital Detox', category: 'REST & RECOVERY', icon: '📵', duration: 15, steps: ['Put phone in another room', 'Turn off your monitor', 'Look out a window or go outside', 'Let your brain idle'], subtitle: 'Completely disconnect from screens.' },
   lofi_rest: { title: 'Lo-fi Music Rest', category: 'REST & RECOVERY', icon: '🎧', duration: 10, steps: ['Put on noise-canceling headphones', 'Play a lo-fi or ambient track', 'Close your eyes', 'Let the rhythm steady your heart'], subtitle: 'Auditory relaxation.' },
   progressive_relax: { title: 'Progressive Relaxation', category: 'REST & RECOVERY', icon: '🛌', duration: 15, steps: ['Tense your feet for 5s, then release', 'Move to calves, thighs, glutes', 'Continue up to hands and face', 'Feel the total body heaviness'], subtitle: 'Systematic tension release.' }
@@ -73,9 +77,12 @@ export default function RecommendScreen({ navigation, route }) {
       const mlTitle = response.data.break_type;
       let activityData = Object.values(BREAK_DATA).find(act => act.title === mlTitle) || BREAK_DATA['eye_rest'];
 
+      // Prioritize user's selected time from Check-in
+      const duration = checkin.time || response.data.duration_minutes || activityData.duration;
+
       setSelected(activityData);
-      setFinalDuration(response.data.duration_minutes || activityData.duration);
-      setSecondsLeft((response.data.duration_minutes || activityData.duration) * 60);
+      setFinalDuration(duration);
+      setSecondsLeft(duration * 60);
       setMlLog(`ML Result: ${mlTitle}`);
       setIsFinished(false);
       setTimerRunning(false);

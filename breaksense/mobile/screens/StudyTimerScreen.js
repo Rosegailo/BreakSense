@@ -236,7 +236,7 @@ export default function StudyTimerScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 <Ionicons name="stop" size={16} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Timer</Text>
+                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Alarm</Text>
               </TouchableOpacity>
             )}
           </View>

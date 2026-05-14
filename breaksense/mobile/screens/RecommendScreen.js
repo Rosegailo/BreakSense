@@ -220,7 +220,7 @@ export default function RecommendScreen({ navigation, route }) {
                     <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>Pause</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: '#ff3b30', marginLeft: 10 }]} onPress={handleFinish}>
-                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Stop Timer</Text>
+                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Stop Alarm</Text>
                   </TouchableOpacity>
                 </View>
               )}

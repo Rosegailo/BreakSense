@@ -220,38 +220,38 @@ export default function StudyTimerScreen({ navigation }) {
           </View>
 
           <View style={styles.controlsRow}>
-            {isRunning ? (
-              <TouchableOpacity
-                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
-                onPress={handleReset}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="stop" size={16} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Session</Text>
-              </TouchableOpacity>
-            ) : timerComplete ? (
-              <TouchableOpacity
-                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
-                onPress={async () => {
-                   await stopRingtone();
-                   // The Alert is likely already visible, but this provides a physical button too
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="notifications-off" size={16} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Alarm</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.startBtn}
-                onPress={handleStart}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
-                <Text style={styles.startBtnText}>Start Study Session</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.startBtn, isRunning && styles.disabledBtn]}
+              onPress={handleStart}
+              disabled={isRunning}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
+              <Text style={styles.startBtnText}>
+                {isRunning ? 'Session in progress...' : 'Start Study Session'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stopBtn}
+              onPress={handleReset}
+              activeOpacity={0.8}
+            />
           </View>
+
+          {timerComplete && (
+            <TouchableOpacity
+              style={[styles.startBtn, { backgroundColor: '#ff3b30', marginTop: 15 }]}
+              onPress={async () => {
+                await stopRingtone();
+                setTimerComplete(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="notifications-off" size={16} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Alarm</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

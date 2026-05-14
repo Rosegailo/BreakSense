@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, Alert, ActivityIndicator, Vibration
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import Header from './components/Header';
@@ -225,13 +226,23 @@ export default function RecommendScreen({ navigation, route }) {
                   <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]} onPress={() => setTimerRunning(false)}>
                     <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>Pause</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: '#ff3b30', marginLeft: 10 }]} onPress={handleFinish}>
-                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Stop Alarm</Text>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.accent, marginLeft: 10 }]} onPress={handleFinish}>
+                    <Text style={styles.actionBtnText}>Done</Text>
                   </TouchableOpacity>
                 </View>
               )}
               {isFinished && (
                 <View style={{ width: '100%', alignItems: 'center' }}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#ff3b30', marginBottom: 20 }]}
+                    onPress={async () => {
+                      await stopRingtone();
+                    }}
+                  >
+                    <Ionicons name="notifications-off" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Stop Alarm</Text>
+                  </TouchableOpacity>
+
                   <Text style={{ color: colors.textPrimary, marginBottom: 15, fontWeight: 'bold' }}>How refreshed do you feel?</Text>
                   <View style={styles.emojiRow}>
                     {RATINGS.map(r => (

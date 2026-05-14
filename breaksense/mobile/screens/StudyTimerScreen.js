@@ -220,23 +220,25 @@ export default function StudyTimerScreen({ navigation }) {
           </View>
 
           <View style={styles.controlsRow}>
-            <TouchableOpacity
-              style={[styles.startBtn, isRunning && styles.disabledBtn]}
-              onPress={handleStart}
-              disabled={isRunning}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
-              <Text style={styles.startBtnText}>
-                {isRunning ? 'Session in progress...' : 'Start Study Session'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.stopBtn}
-              onPress={handleReset}
-              activeOpacity={0.8}
-            />
+            {!isRunning ? (
+              <TouchableOpacity
+                style={styles.startBtn}
+                onPress={handleStart}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
+                <Text style={styles.startBtnText}>Start Study Session</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.startBtn, { backgroundColor: '#ff3b30' }]}
+                onPress={handleReset}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="stop" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={[styles.startBtnText, { color: '#fff' }]}>Stop Timer</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 

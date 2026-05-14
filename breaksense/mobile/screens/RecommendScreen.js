@@ -219,8 +219,8 @@ export default function RecommendScreen({ navigation, route }) {
                   <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]} onPress={() => setTimerRunning(false)}>
                     <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>Pause</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: colors.accent, marginLeft: 10 }]} onPress={handleFinish}>
-                    <Text style={styles.actionBtnText}>Done</Text>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: '#ff3b30', marginLeft: 10 }]} onPress={handleFinish}>
+                    <Text style={[styles.actionBtnText, { color: '#fff' }]}>Stop Timer</Text>
                   </TouchableOpacity>
                 </View>
               )}

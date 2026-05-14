@@ -243,8 +243,18 @@ export default function StudyTimerScreen({ navigation }) {
             <TouchableOpacity
               style={[styles.startBtn, { backgroundColor: '#ff3b30', marginTop: 15 }]}
               onPress={async () => {
+                const finishedSession = currentSession;
+                const isLast = currentSession === totalSessions;
+
                 await stopRingtone();
                 setTimerComplete(false);
+                advanceSession();
+
+                navigation.navigate('Check-in', {
+                  sessionDuration: sessionDuration,
+                  sessionNumber: finishedSession,
+                  isLastSession: isLast
+                });
               }}
               activeOpacity={0.8}
             >

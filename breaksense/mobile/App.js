@@ -69,7 +69,7 @@ function CustomDrawerContent(props) {
               style={styles.drawerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.drawerBrand, { color: colors.textPrimary, fontSize: 15, fontFamily: 'Syne-ExtraBold' }]}>
+            <Text style={[styles.drawerBrand, { color: colors.textPrimary, fontSize: 15, fontFamily: 'Syne-Bold' }]}>
               BreakSense
             </Text>
           </View>
@@ -186,12 +186,12 @@ export default function App() {
 
   const [fontsLoaded] = useFonts({
     'Syne_800ExtraBold': Syne_800ExtraBold,
-    'Syne-ExtraBold': Syne_800ExtraBold,
+    'Syne-Bold': Syne_800ExtraBold,
     'Inter': Inter_400Regular,
     'Inter-Bold': Inter_700Bold,
-    'Outfit-Regular': Outfit_400Regular,
-    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
-    'Michroma_400Regular': Michroma_400Regular,
+    'Outfit': Outfit_400Regular,
+    'JetBrains': JetBrainsMono_700Bold,
+    'Michroma': Michroma_400Regular,
   });
 
   const handleLogin = (userData) => {
@@ -256,7 +256,6 @@ safeArea: {
   },
   drawerBrand: {
     fontSize: 22,
-    fontWeight: 'bold',
   },
   logoText: { color: '#64748b', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
   brandName: { fontSize: 18, fontWeight: 'bold' },
@@ -294,7 +293,6 @@ safeArea: {
   itemLabel: {
     color: '#94a3b8',
     fontSize: 14,
-    fontWeight: 'bold'
   },
   itemLabelActive: {
     color: '#ffffff',

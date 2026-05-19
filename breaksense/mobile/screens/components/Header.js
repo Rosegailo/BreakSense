@@ -16,7 +16,7 @@ export default function Header() {
           style={styles.headerIcon}
           resizeMode="contain"
         />
-        <Text style={[styles.brandName, { color: colors.textPrimary }, { fontFamily: 'Syne_800ExtraBold' }]}>
+        <Text style={[styles.brandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
           Break<Text style={{ color: colors.textPrimary }}>Sense</Text>
         </Text>
       </View>

@@ -233,7 +233,7 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <View style={styles.header}>
-        <Text style={[styles.mainTitle, { color: colors.accent, fontFamily: 'Syne-ExtraBold' }]}>Settings</Text>
+        <Text style={[styles.mainTitle, { color: colors.accent, fontFamily: 'Syne-Bold' }]}>Settings</Text>
         <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={28} color="#ef4444" />
         </TouchableOpacity>
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   closeBtn: { padding: 5 },
-  mainTitle: { fontSize: 32, fontWeight: '900', marginBottom: 25 },
+  mainTitle: { fontSize: 32, marginBottom: 25 },
   subtitle: { color: '#64748b', fontSize: 14, marginTop: 4 },
   scrollBody: { paddingBottom: 100 },
   section: { marginBottom: 35 },

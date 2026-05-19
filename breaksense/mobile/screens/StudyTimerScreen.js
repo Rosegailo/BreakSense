@@ -151,7 +151,7 @@ export default function StudyTimerScreen({ navigation }) {
       <Header />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
             Study <Text style={[styles.titleHighlight, { color: colors.accent }]}>Timer</Text>
           </Text>
           <Text style={styles.subtitle}>POMODORO focus sessions.</Text>
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f141e' },
   content: { padding: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 25, fontWeight: '900' },
+  title: { color: '#fff', fontSize: 25 },
   titleHighlight: { color: '#39ef8d' },
     subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   notificationBox: {
@@ -328,8 +328,7 @@ const styles = StyleSheet.create({
   cardHeader: { 
     color: '#FFD700', 
     fontSize: 11, 
-    fontWeight: 'bold', 
-    letterSpacing: 1.5, 
+    letterSpacing: 1.5,
     marginBottom: 12, 
     textAlign: 'center' 
   },
@@ -376,8 +375,8 @@ const styles = StyleSheet.create({
   },
   timerText: { 
     color: '#FFD700', 
-    fontSize: 38, 
-    fontWeight: '900' 
+    fontSize: 38,
+    fontFamily: 'Inter-Bold'
   },
   sessionLabel: { 
     color: '#64748b', 

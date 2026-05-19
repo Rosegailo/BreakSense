@@ -94,7 +94,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
             style={styles.mainIcon}
             resizeMode="contain"
           />
-          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne_800ExtraBold' }]}>
+          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
             Break<Text style={{ color: colors.accent }}>Sense</Text>
           </Text>
         </View>
@@ -107,8 +107,8 @@ export default function SignUpScreen({ navigation, onLogin }) {
         <AuthToggle activeTab="SignUp" onTabChange={(tab) => navigation.navigate(tab)} />
 
         <View style={styles.headerContainer}>
-                  <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne_800ExtraBold' }]}>Start your</Text>
-                  <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne_800ExtraBold'}]}>study journey.</Text>
+                  <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Start your</Text>
+                  <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne-Bold'}]}>study journey.</Text>
                 </View>
 
         <Text style={styles.subtitle}>Create your free account and let KNN personalize your breaks.</Text>
@@ -205,14 +205,13 @@ const styles = StyleSheet.create({
   },
   mainBrandName: {
     fontSize: 24,
-    fontWeight: 'normal',
   },
   logo: { fontSize: 24, fontFamily: 'Michroma_400Regular', textAlign: 'center', marginBottom: 20 },
   tagRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginBottom: 20 },
   tagText: { color: '#64748b', fontSize: 10, letterSpacing: 2 },
   headerContainer: { marginBottom: 5 },
-  headerWhite: { fontSize: 30, fontFamily: 'Syne_800ExtraBold', lineHeight: 36 },
-  headerGreen: { fontSize: 30, fontFamily: 'Syne_800ExtraBold', lineHeight: 36 },
+  headerWhite: { fontSize: 30, lineHeight: 36 },
+  headerGreen: { fontSize: 30, lineHeight: 36 },
   subtitle: { color: '#64748b', fontSize: 13, marginBottom: 20 },
   detailsTitle: { color: '#64748b', fontSize: 12, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' },
   label: { color: '#64748b', fontSize: 12, fontWeight: 'bold', marginBottom: 5 },

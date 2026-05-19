@@ -326,8 +326,8 @@ export default function LibraryScreen() {
       <Header />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.mainTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-          Activity <Text style={[styles.titleHighlight, { fontFamily: 'Syne-ExtraBold' }]}>Library</Text></Text>
+          <Text style={[styles.mainTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
+          Activity <Text style={[styles.titleHighlight, { fontFamily: 'Syne-Bold' }]}>Library</Text></Text>
           <Text style={styles.subtitle}>{ACTIVITIES.length} guided break activities.</Text>
         </View>
 
@@ -378,7 +378,7 @@ export default function LibraryScreen() {
               
               {selectedActivity && (
                 <ScrollView showsVerticalScrollIndicator={false}>
-                  <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+                  <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
                   {selectedActivity.title}
                   </Text>
                   
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   header: { marginTop: 20, marginBottom: 25 },
   logoText: { color: '#888', fontSize: 12, fontWeight: 'bold' },
   brandName: { color: '#fff' },
-  mainTitle: { fontSize: 25, fontWeight: '900' },
+  mainTitle: { fontSize: 25 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#888', fontSize: 14 },
 
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   modalContent: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, height: '85%' },
   handleContainer: { width: '100%', alignItems: 'center', paddingVertical: 15, marginTop: -10 },
   modalHandle: { width: 40, height: 4, backgroundColor: '#39ef8d', borderRadius: 2 },
-  modalTitle: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 32, textAlign: 'center', marginBottom: 20 },
   modalImageContainer: { alignItems: 'center', marginBottom: 20 },
   modalDesc: { color: '#94a3b8', fontSize: 16, textAlign: 'center', lineHeight: 22, marginBottom: 30 },
   stepsHeader: { color: '#64748b', fontSize: 12, fontWeight: 'bold', marginBottom: 15 },

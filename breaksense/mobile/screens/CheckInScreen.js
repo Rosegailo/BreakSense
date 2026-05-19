@@ -71,7 +71,7 @@ export default function CheckInScreen({ navigation, route }) {
       <Header />
       <ScrollView style={styles.container}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
             Mood <Text style={{ color: colors.accent }}>Check-in</Text>
           </Text>
           <Text style={styles.subtitle}>How are you feeling right now?</Text>
@@ -154,18 +154,18 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 20 },
   titleContainer: { marginTop: 20, marginBottom: 25 },
-  title: { fontSize: 25, fontWeight: '900' },
+  title: { fontSize: 25 },
   subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   mainCard: { borderRadius: 20, padding: 20, marginTop: 10, borderWidth: 1 },
   section: { marginBottom: 25 },
-  sectionTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 15 },
+  sectionTitle: { fontSize: 15, marginBottom: 15, fontFamily: 'Inter-Bold' },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
   chipText: { fontSize: 13 },
   analyzeBtn: { paddingVertical: 18, borderRadius: 20, alignItems: 'center', marginTop: 10 },
   analyzeBtnText: { color: '#000', fontSize: 16, fontWeight: 'bold' },
   vectorCard: { borderRadius: 20, padding: 20, marginVertical: 25, borderWidth: 1 },
-  vectorTitle: { color: '#64748b', fontSize: 14, fontWeight: 'bold', marginBottom: 15 },
+  vectorTitle: { color: '#64748b', fontSize: 14, marginBottom: 15, fontFamily: 'Inter-Bold' },
   vectorContent: { padding: 15, borderRadius: 12 },
   vectorLabel: { color: '#64748b', fontSize: 12, marginBottom: 8 },
   vectorValue: { fontSize: 14 }

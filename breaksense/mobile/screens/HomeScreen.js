@@ -106,10 +106,10 @@ export default function HomeScreen() {
       <Header />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
-            Your Break <Text style={[styles.titleHighlight, { color: colors.accent, fontFamily: 'Syne-ExtraBold' }]}>Analytics</Text>
+          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
+            Your Break <Text style={[styles.titleHighlight, { color: colors.accent, fontFamily: 'Syne-Bold' }]}>Analytics</Text>
           </Text>
-          <Text style={[styles.subtitle, { fontFamily: 'Outfit-Regular' }]}>Track your cognitive recovery.</Text>
+          <Text style={[styles.subtitle, { fontFamily: 'Outfit' }]}>Track your cognitive recovery.</Text>
         </View>
 
         {nudgeMessage && (
@@ -123,24 +123,24 @@ export default function HomeScreen() {
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Total Breaks</Text>
-              <Text style={[styles.statValue, { color: colors.accent, fontFamily: 'Inter' }]}>{stats.totalBreaks || 0}</Text>
+              <Text style={[styles.statValue, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>{stats.totalBreaks || 0}</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Ave Score</Text>
-              <Text style={[styles.statValue, { color: '#7F00FF', fontFamily: 'Inter' }]}>{Number(stats.avgScore || 0).toFixed(1)}</Text>
+              <Text style={[styles.statValue, { color: '#7F00FF', fontFamily: 'Inter-Bold' }]}>{Number(stats.avgScore || 0).toFixed(1)}</Text>
             </View>
           </View>
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Best Score</Text>
-              <Text style={[styles.statValue, { color: '#FACC15', fontFamily: 'Inter' }]}>{stats.bestScore || 0}</Text>
+              <Text style={[styles.statValue, { color: '#FACC15', fontFamily: 'Inter-Bold' }]}>{stats.bestScore || 0}</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Top Category</Text>
               <Text style={[styles.statValue, {
                 color: (stats.topCategory && stats.topCategory !== 'None') ? '#FACC15' : colors.textSecondary,
                 fontSize: 13,
-                fontFamily: 'Inter'
+                fontFamily: 'Inter-Bold'
               }]}>
                 {(!stats.topCategory || stats.topCategory === 'None') ? 'No Breaks Yet' : stats.topCategory}
               </Text>
@@ -149,11 +149,11 @@ export default function HomeScreen() {
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Study Sessions Today</Text>
-              <Text style={[styles.statValue, { color: '#FF8C42', fontFamily: 'Inter' }]}>{sessionsToday}</Text>
+              <Text style={[styles.statValue, { color: '#FF8C42', fontFamily: 'Inter-Bold' }]}>{sessionsToday}</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Total Study Time</Text>
-              <Text style={[styles.statValue, { color: '#FF5C8D', fontSize: 16, fontFamily: 'Inter' }]}>{totalStudyTime}m</Text>
+              <Text style={[styles.statValue, { color: '#FF5C8D', fontSize: 16, fontFamily: 'Inter-Bold' }]}>{totalStudyTime}m</Text>
             </View>
           </View>
         </View>
@@ -211,7 +211,7 @@ export default function HomeScreen() {
             <View key={step.num} style={[styles.stepCard, { backgroundColor: colors.background }]}>
               <View style={[styles.stepAccent, { backgroundColor: colors.accent }]} />
               <View style={styles.stepContent}>
-                <Text style={[styles.stepNumberLarge, { color: colors.accent, fontFamily: 'Syne-ExtraBold' }]}>{step.num}</Text>
+                <Text style={[styles.stepNumberLarge, { color: colors.accent, fontFamily: 'Syne-Bold' }]}>{step.num}</Text>
                 <Text style={[styles.stepTitleBold, { color: colors.textPrimary, fontFamily: 'Inter-Bold' }]}>{step.title}</Text>
                 <Text style={[styles.stepDescSubtle, { color: '#94a3b8', fontFamily: 'Inter' }]}>{step.desc}</Text>
               </View>
@@ -227,16 +227,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f141e' },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 25, fontWeight: '800' },
+  title: { color: '#fff', fontSize: 25 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#888', fontSize: 14 },
   statsGrid: { gap: 12, marginBottom: 15, fontFamily: 'Inter' },
   row: { flexDirection: 'row', gap: 10 },
   statCard: { flex: 1, backgroundColor: '#1b222d', padding: 15, borderRadius: 16, height: 90, justifyContent: 'center' },
-  statLabel: { color: '#64748b', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
-  statValue: { fontSize: 24, fontWeight: '900' },
+  statLabel: { color: '#64748b', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 },
+  statValue: { fontSize: 24 },
   mainCard: { backgroundColor: '#1b222d', borderRadius: 20, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: '#2a3342' },
-  cardHeader: { color: '#39ef8d', fontSize: 13, fontWeight: 'bold', letterSpacing: 1.5, marginBottom: 5, fontFamily: 'JetBrainsMono-Bold' },
+  cardHeader: { color: '#39ef8d', fontSize: 13, letterSpacing: 1.5, marginBottom: 5, fontFamily: 'JetBrains' },
   divider: { height: 1, backgroundColor: '#2a3342', marginVertical: 12 },
   barItem: { marginBottom: 16 },
   barRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },

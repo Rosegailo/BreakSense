@@ -167,7 +167,7 @@ export default function StatsScreen({ navigation }) {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.topBar}>
           <View style={styles.header}>
-            <Text style={[styles.mainTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>
+            <Text style={[styles.mainTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
               Break <Text style={styles.titleHighlight}>Logs</Text>
             </Text>
             <Text style={styles.subtitle}>Your session history.</Text>
@@ -177,13 +177,13 @@ export default function StatsScreen({ navigation }) {
         {history.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🔍</Text>
-            <Text style={[styles.emptyTitle, { color: colors.textPrimary, fontFamily: 'Syne-ExtraBold' }]}>No Break Logs Yet</Text>
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>No Break Logs Yet</Text>
             <Text style={styles.emptySubtitle}>Complete your Mood Check-in first.</Text>
             <TouchableOpacity 
               style={[styles.checkInBtn, { borderColor: colors.accent }]}
               onPress={() => navigation.navigate('Check-in')}
             >
-              <Text style={[styles.checkInBtnText, { color: colors.accent }]}>Go to Check-in</Text>
+              <Text style={[styles.checkInBtnText, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>Go to Check-in</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 20, marginBottom: 25 },
   header: { flex: 1 },
-  mainTitle: { fontSize: 25, fontWeight: '900' },
+  mainTitle: { fontSize: 25 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#64748b', fontSize: 14, marginTop: 4 },
 
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100 },
   emptyEmoji: { fontSize: 60, marginBottom: 20 },
-  emptyTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
+  emptyTitle: { fontSize: 24, marginBottom: 10 },
   emptySubtitle: { color: '#888', fontSize: 14, marginBottom: 30 },
   checkInBtn: { borderWidth: 2, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 15 },
   checkInBtnText: { fontWeight: 'bold' }

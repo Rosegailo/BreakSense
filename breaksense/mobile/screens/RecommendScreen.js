@@ -176,18 +176,18 @@ export default function RecommendScreen({ navigation, route }) {
         {!selected ? (
           <View style={styles.emptyContainer}>
             <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
-            <Text style={{ color: colors.textPrimary, fontSize: 24, fontFamily: 'Syne-ExtraBold', textAlign: 'center', marginBottom: 10 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 24, fontFamily: 'Syne-Bold', textAlign: 'center', marginBottom: 10 }}>
               No Recommendation Yet
             </Text>
             <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>
             <TouchableOpacity style={[styles.emptyLogBtn, { borderColor: colors.accent, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 15, borderWidth: 2, marginTop: 30 }]} onPress={() => navigation.navigate('Check-in')}>
-              <Text style={[styles.emptyLogBtnText, { color: colors.accent, fontWeight: 'bold' }]}>Go to Check-in</Text>
+              <Text style={[styles.emptyLogBtnText, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>Go to Check-in</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <View style={styles.headerContainer}>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary, fontWeight: '900', fontFamily: 'Syne-ExtraBold' }]}>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
                 Break <Text style={{ color: colors.accent }}>Rec</Text>
               </Text>
               <Text style={styles.headerSubtitle}>Personalized via Python ML.</Text>
@@ -269,13 +269,13 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 40, paddingTop: 180},
   headerContainer: { marginTop: 20, marginBottom: 25 },
-  headerTitle: { fontSize: 25, fontWeight: '900'},
+  headerTitle: { fontSize: 25 },
   headerSubtitle: { color: '#888', fontSize: 14 },
   emptyLogBtn: { borderWidth: 1, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 10 },
   emptyLogBtnText: { fontWeight: '600' },
   mainActivityCard: { borderRadius: 20, padding: 25, borderWidth: 1, marginBottom: 15 },
   categoryLabel: { color: '#a855f7', fontSize: 11, fontWeight: 'bold', marginBottom: 15, textTransform: 'uppercase' },
-  activityTitle: { fontSize: 28, fontWeight: 'bold' },
+  activityTitle: { fontSize: 28, fontFamily: 'Inter-Bold' },
   activitySubtitle: { color: '#888', fontSize: 13, marginTop: 10 },
   divider: { height: 1, marginVertical: 20 },
   stepRow: { flexDirection: 'row', marginBottom: 12 },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#facc15', marginRight: 12 },
   logText: { fontSize: 13, fontFamily: 'monospace' },
   timerCard: { borderRadius: 20, padding: 25, alignItems: 'center' },
-  timerValue: { fontSize: 60, fontWeight: '900', marginBottom: 20 },
+  timerValue: { fontSize: 60, fontFamily: 'JetBrains', marginBottom: 20 },
   row: { flexDirection: 'row', width: '100%' },
   actionBtn: { paddingVertical: 15, borderRadius: 15, alignItems: 'center', width: '100%' },
   actionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },

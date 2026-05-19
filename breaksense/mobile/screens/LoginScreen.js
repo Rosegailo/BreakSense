@@ -76,7 +76,7 @@ export default function LoginScreen({ navigation, onLogin }) {
             style={styles.mainIcon}
             resizeMode="contain"
           />
-          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne_800ExtraBold' }]}>
+          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
             Break<Text style={{ color: colors.accent }}>Sense</Text>
           </Text>
         </View>
@@ -89,8 +89,8 @@ export default function LoginScreen({ navigation, onLogin }) {
         <AuthToggle activeTab activeTab="Login" onTabChange={(tab) => navigation.navigate(tab)} />
 
         <View style={styles.welcomeContainer}>
-          <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne_800ExtraBold' }]}>Welcome</Text>
-          <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne_800ExtraBold'}]}>back.</Text>
+          <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Welcome</Text>
+          <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne-Bold'}]}>back.</Text>
         </View>
 
         <Text style={styles.subtitle}>Continue your study streak where you left off.</Text>
@@ -155,14 +155,13 @@ const styles = StyleSheet.create({
   },
   mainBrandName: {
     fontSize: 28,
-    fontWeight: 'normal',
   },
   logo: { fontSize: 24, fontFamily: 'Michroma_400Regular', textAlign: 'center', marginBottom: 5 },
   tagRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginBottom: 30 },
   tagText: { color: '#64748b', fontSize: 10, letterSpacing: 2 },
   welcomeContainer: { marginBottom: 5 },
-  headerWhite: { fontSize: 32, fontFamily: 'Michroma_400Regular' },
-  headerGreen: { fontSize: 32, fontFamily: 'Michroma_400Regular' },
+  headerWhite: { fontSize: 32, fontFamily: 'Michroma' },
+  headerGreen: { fontSize: 32, fontFamily: 'Michroma' },
   subtitle: { color: '#64748b', fontSize: 14, marginBottom: 30 },
   inputGroup: { gap: 15 },
   input: { padding: 18, borderRadius: 12 },

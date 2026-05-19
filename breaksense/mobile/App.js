@@ -8,6 +8,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Outfit_400Regular } from '@expo-google-fonts/outfit';
+import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
+import { Michroma_400Regular } from '@expo-google-fonts/michroma';
 
 import { StatusBar } from 'expo-status-bar';
 
@@ -36,10 +40,6 @@ function CustomDrawerContent(props) {
   const { user, setUser } = useUser();
   const { colors, theme } = useTheme();
 
-  const [fontsLoaded] = useFonts({
-    'Syne-ExtraBold': Syne_800ExtraBold,
-  });
-
   const handleLogout = async () => {
     await AsyncStorage.clear();
     setUser(null);
@@ -57,7 +57,7 @@ function CustomDrawerContent(props) {
     { label: 'Logs', subtitle: 'Your session history', route: 'Logs' },
   ];
 
-  if (!fontsLoaded) return null;
+  if (!user) return null;
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1, backgroundColor: colors.background }}>
@@ -184,9 +184,23 @@ function AuthStackScreens({ onLogin }) {
 export default function App() {
   const [user, setUser] = useState(null);
 
+  const [fontsLoaded] = useFonts({
+    'Syne_800ExtraBold': Syne_800ExtraBold,
+    'Syne-ExtraBold': Syne_800ExtraBold,
+    'Inter': Inter_400Regular,
+    'Inter-Bold': Inter_700Bold,
+    'Outfit-Regular': Outfit_400Regular,
+    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
+    'Michroma_400Regular': Michroma_400Regular,
+  });
+
   const handleLogin = (userData) => {
     setUser(userData);
   };
+
+  if (!fontsLoaded) {
+    return null; // Or a <SplashScreen /> component
+  }
 
   return (
     <ThemeProvider>

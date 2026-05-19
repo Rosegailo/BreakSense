@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import Header from './components/Header'; 
 import { useTheme } from '../context/ThemeContext';
-import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -269,10 +268,6 @@ export default function LibraryScreen() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const { colors } = useTheme();
 
-  const [fontsLoaded] = useFonts({
-    'Syne-ExtraBold': Syne_800ExtraBold,
-  });
-
   const panY = useRef(new Animated.Value(0)).current;
 
   const panResponder = useRef(
@@ -325,14 +320,6 @@ export default function LibraryScreen() {
       <Text style={styles.chevron}>›</Text>
     </TouchableOpacity>
   );
-
-  if (!fontsLoaded) {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#39ef8d" />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>

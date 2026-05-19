@@ -10,10 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
-import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-import { Outfit_400Regular } from '@expo-google-fonts/outfit';
-import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 
 const CATEGORY_COLORS = {
   'Physical Movement': '#00FF66',
@@ -25,14 +21,6 @@ const CATEGORY_COLORS = {
 export default function HomeScreen() {
   const { user } = useUser();
   const { colors } = useTheme();
-
-  const [fontsLoaded] = useFonts({
-    'Syne-ExtraBold': Syne_800ExtraBold,
-    'Inter': Inter_400Regular,
-    'Inter-Bold': Inter_700Bold,
-    'Outfit-Regular': Outfit_400Regular,
-    'JetBrainsMono-Bold': JetBrainsMono_700Bold,
-  });
 
   const [stats, setStats] = useState({
     totalBreaks: 0, 
@@ -104,7 +92,7 @@ export default function HomeScreen() {
     }, [user])
   );
 
-  if (loading || !fontsLoaded) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.accent} />

@@ -3,8 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaVie
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';
-import { useFonts, Michroma_400Regular } from '@expo-google-fonts/michroma';
-import { Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,8 +11,6 @@ export default function SignUpScreen({ navigation, onLogin }) {
   const [agreed, setAgreed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { colors } = useTheme();
-
-  const [fontsLoaded] = useFonts({ Michroma_400Regular, Syne_800ExtraBold });
 
   const handleEmailSignUp = async () => {
     try {
@@ -77,7 +73,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
     }
   };
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  // if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -88,7 +84,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
             style={styles.mainIcon}
             resizeMode="contain"
           />
-          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, fontsLoaded && { fontFamily: 'Syne_800ExtraBold' }]}>
+          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne_800ExtraBold' }]}>
             Break<Text style={{ color: colors.accent }}>Sense</Text>
           </Text>
         </View>

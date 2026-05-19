@@ -8,7 +8,6 @@ import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTheme } from '../context/ThemeContext';
 import { useTimer } from '../context/TimerContext';
 

@@ -3,12 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
-import { useFonts, Syne_800ExtraBold } from '@expo-google-fonts/syne';
 
 export default function Header() {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const [fontsLoaded] = useFonts({ Syne_800ExtraBold });
 
   return (
     <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
@@ -18,7 +16,7 @@ export default function Header() {
           style={styles.headerIcon}
           resizeMode="contain"
         />
-        <Text style={[styles.brandName, { color: colors.textPrimary }, fontsLoaded && { fontFamily: 'Syne_800ExtraBold' }]}>
+        <Text style={[styles.brandName, { color: colors.textPrimary }, { fontFamily: 'Syne_800ExtraBold' }]}>
           Break<Text style={{ color: colors.textPrimary }}>Sense</Text>
         </Text>
       </View>

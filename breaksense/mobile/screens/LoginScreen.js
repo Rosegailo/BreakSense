@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ navigation, onLogin }) {
   const [email, setEmail] = useState('');

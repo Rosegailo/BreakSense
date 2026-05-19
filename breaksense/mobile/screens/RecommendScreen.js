@@ -176,8 +176,8 @@ export default function RecommendScreen({ navigation, route }) {
         {!selected ? (
           <View style={styles.emptyContainer}>
             <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
-            <Text style={{ color: colors.textPrimary, fontSize: 24, fontFamily: 'Syne-Bold', textAlign: 'center', marginBottom: 10 }}>
-              No Recommendation Yet
+            <Text style={{ color: colors.textPrimary, fontSize: 28, fontFamily: 'Syne-Bold', textAlign: 'center', marginBottom: 15, lineHeight: 38 }}>
+              No{"\n"}Recommendation{"\n"}Yet
             </Text>
             <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>
             <TouchableOpacity style={[styles.emptyLogBtn, { borderColor: colors.accent, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 15, borderWidth: 2, marginTop: 30 }]} onPress={() => navigation.navigate('Check-in')}>

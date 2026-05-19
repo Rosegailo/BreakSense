@@ -177,7 +177,9 @@ export default function StatsScreen({ navigation }) {
         {history.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🔍</Text>
-            <Text style={[styles.emptyTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>No Break Logs Yet</Text>
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary, fontFamily: 'Syne-Bold', textAlign: 'center', lineHeight: 36 }]}>
+              No{"\n"}Break Logs{"\n"}Yet
+            </Text>
             <Text style={styles.emptySubtitle}>Complete your Mood Check-in first.</Text>
             <TouchableOpacity 
               style={[styles.checkInBtn, { borderColor: colors.accent }]}

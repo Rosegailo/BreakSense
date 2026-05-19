@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   header: { marginTop: 20, marginBottom: 25 },
   logoText: { color: '#888', fontSize: 12, fontWeight: 'bold' },
   brandName: { color: '#fff' },
-  mainTitle: { fontSize: 25 },
+  mainTitle: { fontSize: 20 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#888', fontSize: 14 },
 

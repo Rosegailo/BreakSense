@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f141e' },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 25 },
+  title: { color: '#fff', fontSize: 20 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#888', fontSize: 14 },
   statsGrid: { gap: 12, marginBottom: 15, fontFamily: 'Inter' },

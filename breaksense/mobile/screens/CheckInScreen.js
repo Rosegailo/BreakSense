@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 20 },
   titleContainer: { marginTop: 20, marginBottom: 25 },
-  title: { fontSize: 25 },
+  title: { fontSize: 20 },
   subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   mainCard: { borderRadius: 20, padding: 20, marginTop: 10, borderWidth: 1 },
   section: { marginBottom: 25 },

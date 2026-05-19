@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   closeBtn: { padding: 5 },
-  mainTitle: { fontSize: 32, marginBottom: 25 },
+  mainTitle: { fontSize: 20, marginBottom: 25 },
   subtitle: { color: '#64748b', fontSize: 14, marginTop: 4 },
   scrollBody: { paddingBottom: 100 },
   section: { marginBottom: 35 },

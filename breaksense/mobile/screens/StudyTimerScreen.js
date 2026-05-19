@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f141e' },
   content: { padding: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 25 },
+  title: { color: '#fff', fontSize: 20 },
   titleHighlight: { color: '#39ef8d' },
     subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   notificationBox: {

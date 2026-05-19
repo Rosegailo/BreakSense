@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 20, marginBottom: 25 },
   header: { flex: 1 },
-  mainTitle: { fontSize: 25 },
+  mainTitle: { fontSize: 20 },
   titleHighlight: { color: '#39ef8d' },
   subtitle: { color: '#64748b', fontSize: 14, marginTop: 4 },
 

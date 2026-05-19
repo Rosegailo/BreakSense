@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 40, paddingTop: 180},
   headerContainer: { marginTop: 20, marginBottom: 25 },
-  headerTitle: { fontSize: 25 },
+  headerTitle: { fontSize: 20 },
   headerSubtitle: { color: '#888', fontSize: 14 },
   emptyLogBtn: { borderWidth: 1, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10, marginTop: 10 },
   emptyLogBtnText: { fontWeight: '600' },

@@ -42,9 +42,9 @@ export default function SignUpScreen({ navigation, onLogin }) {
       }
 
       const userData = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
         password: form.password
       };
 
@@ -63,13 +63,23 @@ export default function SignUpScreen({ navigation, onLogin }) {
         navigation.navigate('Login');
       }
     } catch (error) {
-      console.log("Signup error response:", JSON.stringify(error.response?.data, null, 2));
+      console.log("Signup error detail:", error.response?.data || error.message);
 
-      const serverMessage = error.response?.data?.message;
-      const errorMessage = serverMessage || 'Registration failed. Make sure your password has 8+ chars, 1 uppercase, 1 number, and 1 special char.';
+      let errorMessage = 'Registration failed. Please check your internet connection.';
 
-      if (Platform.OS === 'web') window.alert(`Registration Issue: ${errorMessage}`);
-      else Alert.alert('Registration Issue', errorMessage);
+      if (error.response) {
+        errorMessage = error.response.data.message || `Server Error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = "Cannot connect to server. Please check if your Render backend is awake.";
+      } else {
+        errorMessage = error.message;
+      }
+
+      if (Platform.OS === 'web') {
+        window.alert(`Registration Issue: ${errorMessage}`);
+      } else {
+        Alert.alert('Registration Issue', errorMessage);
+      }
     }
   };
 

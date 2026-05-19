@@ -43,15 +43,17 @@ export default function LoginScreen({ navigation, onLogin }) {
     } catch (error) {
       console.error("Login Error Detail:", error.response?.data || error.message);
 
-      // Get the message from the server if available
       let errorMessage = 'Something went wrong. Please check your internet connection.';
 
       if (error.response) {
         // Server responded with a status code outside the 2xx range
-        errorMessage = error.response.data.message || errorMessage;
+        errorMessage = error.response.data.message || `Server Error: ${error.response.status}`;
       } else if (error.request) {
         // Request was made but no response was received
-        errorMessage = "Cannot connect to server. Please check if your backend is running.";
+        errorMessage = "Cannot connect to server. Please check if your Render backend is awake or if your URL in Config.js is correct.";
+      } else {
+        // Something happened in setting up the request
+        errorMessage = error.message;
       }
 
       if (Platform.OS === 'web') {

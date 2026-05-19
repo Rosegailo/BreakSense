@@ -176,7 +176,7 @@ export default function RecommendScreen({ navigation, route }) {
         {!selected ? (
           <View style={styles.emptyContainer}>
             <Text style={{ fontSize: 60, marginBottom: 20 }}>🔍</Text>
-            <Text style={{ color: colors.textPrimary, fontSize: 28, fontFamily: 'Syne-Bold', textAlign: 'center', marginBottom: 15, lineHeight: 38 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 20, fontFamily: 'Syne-Bold', textAlign: 'center', marginBottom: 15, lineHeight: 38 }}>
               No{"\n"}Recommendation{"\n"}Yet
             </Text>
             <Text style={styles.headerSubtitle}>Complete your Mood Check-in first.</Text>

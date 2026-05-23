@@ -5,10 +5,10 @@
     "scheme": "breaksense",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./img/logo.png",
+    "icon": "./img/app_logo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./img/logo.png",
+      "image": "./img/app_logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f141e"
     },
@@ -22,7 +22,7 @@
     "android": {
       "package": "com.rosemarie.breaksense",
       "adaptiveIcon": {
-        "foregroundImage": "./img/logo.png",
+        "foregroundImage": "./img/app_logo.png",
         "backgroundColor": "#0f141e"
       },
       "permissions": [

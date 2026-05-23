@@ -26,14 +26,11 @@ export default function LoginScreen({ navigation, onLogin }) {
       });
 
       if (response.data && response.data.success) {
-        // 1. Save user data to AsyncStorage for persistence
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
         await AsyncStorage.setItem('currentUserId', response.data.user.id.toString());
 
-        // 2. Call the onLogin function passed from App.js
         onLogin(response.data.user); 
       } else {
-        // Fallback for success: false even with 200 status
         const msg = response.data.message || 'Invalid credentials';
         if (Platform.OS === 'web') {
           window.alert(`Login Failed: ${msg}`);

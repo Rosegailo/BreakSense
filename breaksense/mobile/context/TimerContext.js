@@ -14,14 +14,12 @@ export const TimerProvider = ({ children }) => {
   const [totalSessions, setTotalSessions] = useState(4);
   const [timerComplete, setTimerComplete] = useState(false);
 
-  // Derived state for minutes/seconds
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   const timerRef = useRef(null);
   const soundRef = useRef(null);
 
-  // Only reloads settings, DOES NOT reset timeLeft unless forced
   const reloadSettings = async (forceReset = false) => {
     try {
       const savedSessions = await AsyncStorage.getItem('settings_sessions');
@@ -34,11 +32,9 @@ export const TimerProvider = ({ children }) => {
       if (savedPomodoro) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
         setSessionDuration(dur);
-        // Only update timeLeft if the timer isn't running and we aren't in a completed state
-        // or if we explicitly want to force a reset (like when opening settings)
+
         if (!isRunning && (forceReset || timeLeft === 0)) {
-           // If it's already 0, we might want to stay at 0 until start is pressed?
-           // Actually, let's only reset if it's currently at the old duration
+
         }
       }
     } catch (e) {

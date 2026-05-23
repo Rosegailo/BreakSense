@@ -15,12 +15,10 @@ import { Michroma_400Regular } from '@expo-google-fonts/michroma';
 
 import { StatusBar } from 'expo-status-bar';
 
-// Import User Context and Hook
 import { UserContext, useUser } from './UserContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TimerProvider } from './context/TimerContext';
 
-// Import Screens
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -35,7 +33,6 @@ const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
 
-// Custom Drawer Content with Footer
 function CustomDrawerContent(props) {
   const { user, setUser } = useUser();
   const { colors, theme } = useTheme();

@@ -5,15 +5,26 @@
     "scheme": "breaksense",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./img/logo.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./img/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f141e"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.rosemarie.breaksense"
+      "bundleIdentifier": "com.rosemarie.breaksense",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.rosemarie.breaksense",
+      "adaptiveIcon": {
+        "foregroundImage": "./img/logo.png",
+        "backgroundColor": "#0f141e"
+      },
       "permissions": [
         "INTERNET"
       ]

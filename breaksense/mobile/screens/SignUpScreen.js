@@ -21,7 +21,6 @@ export default function SignUpScreen({ navigation, onLogin }) {
         return;
       }
 
-      // Client-side Password Validation
       const minLength = 8;
       const hasNumber = /\d/.test(form.password);
       const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);

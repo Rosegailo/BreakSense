@@ -32,7 +32,6 @@ export default function StudyTimerScreen({ navigation }) {
     type: 'success'
   });
 
-  // Handle Timer Completion Navigation
   useEffect(() => {
     if (timerComplete) {
       const finishedSession = currentSession;

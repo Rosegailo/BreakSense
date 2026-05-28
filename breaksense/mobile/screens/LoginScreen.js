@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';

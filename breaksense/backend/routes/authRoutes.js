@@ -3,12 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
 
-// SIGN UP ROUTE
 router.post('/signup', async (req, res) => {
     try {
         const { firstName, lastName, email, password } = req.body; 
-        
-        // --- STRONG PASSWORD VALIDATION ---
+
         const minLength = 8;
         const hasNumber = /\d/.test(password);
         const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -20,7 +18,6 @@ router.post('/signup', async (req, res) => {
                 message: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character."
             });
         }
-        // ----------------------------------
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -37,7 +34,6 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// LOG IN ROUTE
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -70,7 +66,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// UPDATE PROFILE ROUTE
 router.put('/update-profile', async (req, res) => {
     try {
         const { userId, firstName, lastName } = req.body;
@@ -87,17 +82,14 @@ router.put('/update-profile', async (req, res) => {
     }
 });
 
-// RESET ACCOUNT ROUTE
 router.delete('/reset-account/:userId', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         const { userId } = req.params;
         await connection.beginTransaction();
 
-        // 1. Delete all history from breaks_history
         await connection.query('DELETE FROM breaks_history WHERE user_id = ?', [userId]);
 
-        // 2. Reset study statistics in the users table
         await connection.query(`
             UPDATE users
             SET SessionsToday = 0,

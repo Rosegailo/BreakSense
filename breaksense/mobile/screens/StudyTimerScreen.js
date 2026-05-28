@@ -18,9 +18,9 @@ export default function StudyTimerScreen({ navigation }) {
     setSessionDuration,
     currentSession, setCurrentSession,
     totalSessions, setTotalSessions,
-    startTimer, stopTimer, resetTimer,
+    startTimer, pauseTimer, stopTimer, resetTimer,
     timerComplete, setTimerComplete,
-    stopRingtone, advanceSession, reloadSettings
+    stopRingtone, advanceSession, reloadSettings, timeLeft
   } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);
@@ -85,38 +85,53 @@ export default function StudyTimerScreen({ navigation }) {
           if (!userId) return;
 
           // --- DAILY RESET & STREAK LOGIC ---
-          const today = new Date().toISOString().split('T')[0];
+          const now = new Date();
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
           const lastVisit = await AsyncStorage.getItem('last_visit_date');
+          const lastSessionDate = await AsyncStorage.getItem('last_session_date');
           let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
 
           if (lastVisit !== today) {
-            // New Day: Display zeros until server data confirms otherwise
+            // New Day: Force 0s locally
             setSessionsCount(0);
             setTotalStudyTime('0m');
 
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
 
-            if (lastVisit === yesterdayStr) {
-              currentStreak += 1;
-            } else if (lastVisit) {
+            if (lastSessionDate !== yesterdayStr && lastSessionDate !== today) {
               currentStreak = 0;
-            } else {
-              currentStreak = 1;
+              await AsyncStorage.setItem('user_streak', '0');
             }
 
-            await AsyncStorage.setItem('user_streak', currentStreak.toString());
             await AsyncStorage.setItem('last_visit_date', today);
+            await AsyncStorage.removeItem('cached_stats'); // Clear cache on reset
           }
-          setDayStreak(currentStreak);
+
+          // STREAK DISPLAY: Show "Completed Days"
+          // If we studied today, show (Streak - 1). If not, show full Streak.
+          if (lastSessionDate === today) {
+            setDayStreak(Math.max(0, currentStreak - 1));
+          } else {
+            setDayStreak(currentStreak);
+          }
           // ----------------------------------
 
           const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}`, { timeout: 8000 });
           if (response.data) {
-            setSessionsCount(response.data.SessionsToday || 0);
-            const studyTime = response.data.TotalStudyTimeToday || 0;
-            setTotalStudyTime(`${studyTime}m`);
+            const currentSessionDate = await AsyncStorage.getItem('last_session_date');
+            const hasDoneSessionToday = (currentSessionDate === today);
+
+            if (!hasDoneSessionToday) {
+              setSessionsCount(0);
+              setTotalStudyTime('0m');
+            } else {
+              setSessionsCount(response.data.SessionsToday || 0);
+              const studyTime = response.data.TotalStudyTimeToday || 0;
+              setTotalStudyTime(`${studyTime}m`);
+            }
           }
         } catch (error) {
           console.error('Failed to fetch user stats:', error);
@@ -134,19 +149,19 @@ export default function StudyTimerScreen({ navigation }) {
 
   const handleStart = () => {
     setNotificationState({ message: null, type: 'success' });
-    startTimer();
+    if (isRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
+    }
   };
 
   const handleReset = async () => {
-    if (isRunning) {
+    // If we have started (even if paused), this is "Done" (Stop early)
+    if (timeLeft < sessionDuration * 60) {
       const finishedSession = currentSession;
       const isLast = currentSession === totalSessions;
       const timeSpentMinutes = await stopTimer();
-
-      setNotificationState({
-        message: `Session ${finishedSession} saved early (${timeSpentMinutes}m).`,
-        type: 'success'
-      });
 
       setSessionsCount(prev => (parseInt(prev) || 0) + 1);
       setTotalStudyTime(prev => {
@@ -154,13 +169,12 @@ export default function StudyTimerScreen({ navigation }) {
         return `${currentNum + timeSpentMinutes}m`;
       });
 
-      setTimeout(() => {
-        navigation.navigate('Check-in', {
-          sessionDuration: timeSpentMinutes,
-          sessionNumber: finishedSession,
-          isLastSession: isLast
-        });
-      }, 1500);
+      // Go DIRECTLY to Check-in
+      navigation.navigate('Check-in', {
+        sessionDuration: timeSpentMinutes,
+        sessionNumber: finishedSession,
+        isLastSession: isLast
+      });
 
     } else {
       resetTimer();
@@ -199,7 +213,7 @@ export default function StudyTimerScreen({ navigation }) {
 
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardHeader, { color: '#64748b' }]}>SESSION DURATION</Text>
-          <div style={styles.durationButtons}>
+          <View style={styles.durationButtons}>
             {[15, 25, 45, 60].map((duration) => (
               <TouchableOpacity 
                 key={duration}
@@ -218,7 +232,7 @@ export default function StudyTimerScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
             ))}
-          </div>
+          </View>
 
           <View style={styles.timerContainer}>
             <View style={[styles.ringBackground, { borderColor: colors.background }]}>
@@ -246,22 +260,29 @@ export default function StudyTimerScreen({ navigation }) {
 
           <View style={styles.controlsRow}>
             <TouchableOpacity
-              style={[styles.startBtn, isRunning && styles.disabledBtn]}
+              style={styles.startBtn}
               onPress={handleStart}
-              disabled={isRunning}
               activeOpacity={0.8}
             >
-              <Ionicons name="play" size={16} color="#000" style={{ marginRight: 8 }} />
+              <Ionicons
+                name={isRunning ? "pause" : "play"}
+                size={16}
+                color="#000"
+                style={{ marginRight: 8 }}
+              />
               <Text style={styles.startBtnText}>
-                {isRunning ? 'Session in progress...' : 'Start Study Session'}
+                {isRunning ? 'Pause Session' : (timeLeft < sessionDuration * 60 ? 'Resume Session' : 'Start Study Session')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.stopBtn}
+              style={[styles.stopBtn, (timeLeft === sessionDuration * 60) && { opacity: 0.5 }]}
               onPress={handleReset}
+              disabled={timeLeft === sessionDuration * 60}
               activeOpacity={0.8}
-            />
+            >
+              <Ionicons name="checkmark-done" size={16} color="#fff" />
+            </TouchableOpacity>
           </View>
 
           {timerComplete && (

@@ -45,16 +45,44 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadCachedData = async () => {
       try {
-        const cachedStats = await AsyncStorage.getItem('cached_stats');
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const lastVisit = await AsyncStorage.getItem('last_visit_date');
+        const lastSessionDate = await AsyncStorage.getItem('last_session_date');
         const cachedStreak = await AsyncStorage.getItem('user_streak');
-        if (cachedStats) {
-          const data = JSON.parse(cachedStats);
-          setStats(data);
-          setSessionsToday(data.SessionsToday || 0);
-          setTotalStudyTime(data.TotalStudyTimeToday || 0);
-          if (data.categoryCounts) setCounts(data.categoryCounts);
+
+        if (cachedStreak) {
+          const s = parseInt(cachedStreak);
+          // Only show completed days
+          setStreak(lastSessionDate === today ? Math.max(0, s - 1) : s);
         }
-        if (cachedStreak) setStreak(parseInt(cachedStreak));
+
+        if (lastVisit === today) {
+          const cachedStats = await AsyncStorage.getItem('cached_stats');
+          if (cachedStats) {
+            const data = JSON.parse(cachedStats);
+            setStats(data);
+
+            // Check if we actually did a session today
+            if (lastSessionDate === today) {
+              setSessionsToday(data.SessionsToday || 0);
+              setTotalStudyTime(data.TotalStudyTimeToday || 0);
+            } else {
+              setSessionsToday(0);
+              setTotalStudyTime(0);
+            }
+
+            if (data.categoryCounts) setCounts(data.categoryCounts);
+            setLoading(false);
+            return;
+          }
+        }
+
+        setSessionsToday(0);
+        setTotalStudyTime(0);
+        setStats({ totalBreaks: 0, avgScore: 0, bestScore: 0, topCategory: 'None' });
+        setCounts({ 'Physical Movement': 0, 'Mindfulness': 0, 'Nutrition': 0, 'Rest & Recovery': 0 });
       } catch (e) {}
     };
     loadCachedData();
@@ -70,36 +98,38 @@ export default function HomeScreen() {
         return;
       }
 
-      // Handle Daily Reset and Streak
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      const lastSessionDate = await AsyncStorage.getItem('last_session_date');
       const lastVisit = await AsyncStorage.getItem('last_visit_date');
       let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
 
+      // 1. Check for Daily Reset (app open on new day)
       if (lastVisit !== today) {
-        // New Day Reset
-        setSessionsToday(0);
-        setTotalStudyTime(0);
+        // Reset streak to 0 IF they missed yesterday
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
 
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        if (lastVisit === yesterdayStr) {
-          currentStreak += 1;
-        } else if (lastVisit) {
+        if (lastSessionDate !== yesterdayStr && lastSessionDate !== today) {
           currentStreak = 0;
-        } else {
-          currentStreak = 1; // First day
+          await AsyncStorage.setItem('user_streak', '0');
         }
 
-        await AsyncStorage.setItem('user_streak', currentStreak.toString());
         await AsyncStorage.setItem('last_visit_date', today);
-        setStreak(currentStreak);
+        await AsyncStorage.removeItem('cached_stats');
+      }
+
+      // STREAK DISPLAY: Show "Completed Days"
+      // If we studied today, show (Streak - 1). If not, show full Streak.
+      if (lastSessionDate === today) {
+        setStreak(Math.max(0, currentStreak - 1));
       } else {
         setStreak(currentStreak);
       }
 
-      // Nudge setting
+      // 2. Fetch from server
       const nudgeSetting = await AsyncStorage.getItem('settings_nudge');
       setNudgeMessage(nudgeSetting === 'true' ? "Ready to start another session? Focus deep!" : null);
 
@@ -107,12 +137,21 @@ export default function HomeScreen() {
       const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 8000 });
 
       if (res.data) {
-        setStats(res.data);
-        setSessionsToday(res.data.SessionsToday || 0);
-        setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
-        if (res.data.categoryCounts) setCounts(res.data.categoryCounts);
+        const currentSessionDate = await AsyncStorage.getItem('last_session_date');
+        const hasDoneSessionToday = (currentSessionDate === today);
 
-        // Cache the result
+        setStats(res.data);
+
+        // Strictly enforce 0 if no session was logged today in this app
+        if (!hasDoneSessionToday) {
+          setSessionsToday(0);
+          setTotalStudyTime(0);
+        } else {
+          setSessionsToday(res.data.SessionsToday || 0);
+          setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
+        }
+
+        if (res.data.categoryCounts) setCounts(res.data.categoryCounts);
         await AsyncStorage.setItem('cached_stats', JSON.stringify(res.data));
       }
     } catch (e) {
@@ -134,11 +173,11 @@ export default function HomeScreen() {
     fetchData(true);
   }, [user]);
 
-  if (loading && !stats.totalBreaks) {
+  if (loading && !stats.totalBreaks && sessionsToday === 0) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={{ color: colors.textPrimary, marginTop: 15, fontSize: 16 }}>Analyzing your progress...</Text>
+        <Text style={{ color: colors.textPrimary, marginTop: 15, fontSize: 16 }}>Syncing your progress...</Text>
       </SafeAreaView>
     );
   }
@@ -151,16 +190,71 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
       >
         <View style={styles.titleContainer}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View>
-              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
-                Today's <Text style={[styles.titleHighlight, { color: colors.accent }]}>Progress</Text>
+              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold', fontSize: 20 }]}>
+                Your Break <Text style={{ color: colors.accent }}>Analytics</Text>
               </Text>
-              <Text style={[styles.subtitle, { fontFamily: 'Outfit' }]}>Your daily focus analytics.</Text>
+              <Text style={[styles.subtitle, { fontFamily: 'Outfit', color: colors.textSecondary, marginTop: 5 }]}>
+                Track your cognitive recovery.
+              </Text>
             </View>
             <View style={[styles.streakBadge, { backgroundColor: colors.card, borderColor: colors.accent }]}>
               <Ionicons name="flame" size={20} color={colors.accent} />
               <Text style={[styles.streakText, { color: colors.textPrimary }]}>{streak}d</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.statsGrid}>
+          {/* Row 1 */}
+          <View style={styles.row}>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Total Breaks</Text>
+              <Text style={[styles.statValue, { color: colors.accent, fontFamily: 'Michroma' }]}>
+                {stats.totalBreaks || 0}
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Ave Score</Text>
+              <Text style={[styles.statValue, { color: '#a855f7', fontFamily: 'Michroma' }]}>
+                {Number(stats.avgScore || 0).toFixed(1)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Row 2 */}
+          <View style={styles.row}>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Best Score</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma' }]}>
+                  {stats.bestScore || 0}
+                </Text>
+                <Text style={{ fontSize: 18, color: '#fbbf24', marginLeft: 8 }}>⭐</Text>
+              </View>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Top Category</Text>
+              <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma', fontSize: 13 }]}>
+                {(!stats.topCategory || stats.topCategory === 'None') ? 'None' : stats.topCategory}
+              </Text>
+            </View>
+          </View>
+
+          {/* Row 3 */}
+          <View style={styles.row}>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Study Sessions Today</Text>
+              <Text style={[styles.statValue, { color: '#f97316', fontFamily: 'Michroma' }]}>
+                {sessionsToday}
+              </Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={styles.statLabel}>Total Study Time</Text>
+              <Text style={[styles.statValue, { color: '#ec4899', fontFamily: 'Michroma' }]}>
+                {totalStudyTime} m
+              </Text>
             </View>
           </View>
         </View>
@@ -171,47 +265,6 @@ export default function HomeScreen() {
              <Text style={[styles.notificationText, { color: colors.textPrimary }]}>{nudgeMessage}</Text>
           </View>
         )}
-
-        <View style={styles.statsGrid}>
-          <View style={styles.row}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Study Sessions</Text>
-              <Text style={[styles.statValue, { color: '#FF8C42', fontFamily: 'Inter-Bold' }]}>{sessionsToday}</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Study Time</Text>
-              <Text style={[styles.statValue, { color: '#FF5C8D', fontFamily: 'Inter-Bold' }]}>{totalStudyTime}m</Text>
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Total Breaks</Text>
-              <Text style={[styles.statValue, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>{stats.totalBreaks || 0}</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Ave Score</Text>
-              <Text style={[styles.statValue, { color: '#7F00FF', fontFamily: 'Inter-Bold' }]}>{Number(stats.avgScore || 0).toFixed(1)}</Text>
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Best Score</Text>
-              <Text style={[styles.statValue, { color: '#FACC15', fontFamily: 'Inter-Bold' }]}>{stats.bestScore || 0}</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel]}>Top Category</Text>
-              <Text style={[styles.statValue, {
-                color: (stats.topCategory && stats.topCategory !== 'None') ? '#FACC15' : colors.textSecondary,
-                fontSize: 13,
-                fontFamily: 'Inter-Bold'
-              }]}>
-                {(!stats.topCategory || stats.topCategory === 'None') ? 'None' : stats.topCategory}
-              </Text>
-            </View>
-          </View>
-        </View>
 
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardHeader, { color: '#64748b' }]}>CATEGORY DISTRIBUTION</Text>
@@ -241,7 +294,7 @@ export default function HomeScreen() {
           <Text style={[styles.cardHeader, { color: '#64748b', marginBottom: 15 }]}>HOW BREAKSENSE WORKS</Text>
           <View style={[styles.divider, { backgroundColor: colors.border, marginBottom: 20 }]} />
           {[
-            { num: 1, title: 'Study Session', desc: 'Set your Promodoro timer and focus deep.' },
+            { num: 1, title: 'Study Session', desc: 'Set your Pomodoro timer and focus deep.' },
             { num: 2, title: 'Check In', desc: 'Rate fatigue, stress & available break time.' },
             { num: 3, title: 'KNN Predicts', desc: 'Nearest past sessions vote on best break category.' },
             { num: 4, title: 'Rate & Repeat', desc: 'Your score trains the model. Resume studying refreshed.' }
@@ -270,11 +323,11 @@ const styles = StyleSheet.create({
   subtitle: { color: '#888', fontSize: 14 },
   streakBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1 },
   streakText: { marginLeft: 4, fontWeight: 'bold', fontSize: 14 },
-  statsGrid: { gap: 12, marginBottom: 15 },
-  row: { flexDirection: 'row', gap: 10 },
-  statCard: { flex: 1, padding: 15, borderRadius: 16, height: 90, justifyContent: 'center' },
-  statLabel: { color: '#64748b', fontSize: 10, textTransform: 'uppercase', marginBottom: 4, fontFamily: 'Inter' },
-  statValue: { fontSize: 24 },
+  statsGrid: { gap: 12, marginBottom: 20 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  statCard: { flex: 1, padding: 18, borderRadius: 20, height: 110, justifyContent: 'center' },
+  statLabel: { color: '#64748b', fontSize: 11, textTransform: 'uppercase', marginBottom: 8, fontFamily: 'Inter' },
+  statValue: { fontSize: 26 },
   mainCard: { borderRadius: 20, padding: 20, marginBottom: 30, borderWidth: 1 },
   cardHeader: { fontSize: 13, letterSpacing: 1.5, marginBottom: 5, fontFamily: 'JetBrains' },
   divider: { height: 1, marginVertical: 12 },

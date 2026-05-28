@@ -17,7 +17,7 @@ export default function Header() {
           resizeMode="contain"
         />
         <Text style={[styles.brandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
-          Break<Text style={{ color: colors.textPrimary }}>Sense</Text>
+          Break<Text style={{ color: colors.accent }}>Sense</Text>
         </Text>
       </View>
       <TouchableOpacity onPress={() => navigation.openDrawer()}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, Platform, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import AuthToggle from './components/AuthToggle';
@@ -10,36 +10,38 @@ export default function SignUpScreen({ navigation, onLogin }) {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [agreed, setAgreed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { colors } = useTheme();
 
   const handleEmailSignUp = async () => {
+    if (!form.firstName || !form.lastName || !form.email || !form.password) {
+      const msg = 'Please fill in all fields.';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Error', msg);
+      return;
+    }
+
+    const minLength = 8;
+    const hasNumber = /\d/.test(form.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);
+    const hasUpper = /[A-Z]/.test(form.password);
+
+    if (form.password.length < minLength || !hasNumber || !hasSpecial || !hasUpper) {
+      const msg = 'Your password must have:\n• At least 8 characters\n• At least one uppercase letter\n• At least one number\n• At least one special character';
+      if (Platform.OS === 'web') window.alert(`Weak Password: ${msg}`);
+      else Alert.alert('Weak Password', msg);
+      return;
+    }
+
+    if (!agreed) {
+      const msg = 'Please agree to the Terms of Service and Privacy Policy.';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Error', msg);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      if (!form.firstName || !form.lastName || !form.email || !form.password) {
-        const msg = 'Please fill in all fields.';
-        if (Platform.OS === 'web') window.alert(msg);
-        else Alert.alert('Error', msg);
-        return;
-      }
-
-      const minLength = 8;
-      const hasNumber = /\d/.test(form.password);
-      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);
-      const hasUpper = /[A-Z]/.test(form.password);
-
-      if (form.password.length < minLength || !hasNumber || !hasSpecial || !hasUpper) {
-        const msg = 'Your password must have:\n• At least 8 characters\n• At least one uppercase letter\n• At least one number\n• At least one special character';
-        if (Platform.OS === 'web') window.alert(`Weak Password: ${msg}`);
-        else Alert.alert('Weak Password', msg);
-        return;
-      }
-
-      if (!agreed) {
-        const msg = 'Please agree to the Terms of Service and Privacy Policy.';
-        if (Platform.OS === 'web') window.alert(msg);
-        else Alert.alert('Error', msg);
-        return;
-      }
-
       const userData = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -63,26 +65,18 @@ export default function SignUpScreen({ navigation, onLogin }) {
       }
     } catch (error) {
       console.log("Signup error detail:", error.response?.data || error.message);
-
       let errorMessage = 'Registration failed. Please check your internet connection.';
-
       if (error.response) {
         errorMessage = error.response.data.message || `Server Error: ${error.response.status}`;
       } else if (error.request) {
         errorMessage = "Cannot connect to server. Please check if your Render backend is awake.";
-      } else {
-        errorMessage = error.message;
       }
-
-      if (Platform.OS === 'web') {
-        window.alert(`Registration Issue: ${errorMessage}`);
-      } else {
-        Alert.alert('Registration Issue', errorMessage);
-      }
+      if (Platform.OS === 'web') window.alert(`Registration Issue: ${errorMessage}`);
+      else Alert.alert('Registration Issue', errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -93,7 +87,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
             style={styles.mainIcon}
             resizeMode="contain"
           />
-          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
+          <Text style={[styles.mainBrandName, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
             Break<Text style={{ color: colors.accent }}>Sense</Text>
           </Text>
         </View>
@@ -106,9 +100,9 @@ export default function SignUpScreen({ navigation, onLogin }) {
         <AuthToggle activeTab="SignUp" onTabChange={(tab) => navigation.navigate(tab)} />
 
         <View style={styles.headerContainer}>
-                  <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Start your</Text>
-                  <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne-Bold'}]}>study journey.</Text>
-                </View>
+          <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Start your</Text>
+          <Text style={[styles.headerGreen, { color: colors.accent, fontFamily: 'Syne-Bold'}]}>study journey.</Text>
+        </View>
 
         <Text style={styles.subtitle}>Create your free account and let KNN personalize your breaks.</Text>
 
@@ -123,6 +117,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
               placeholderTextColor={colors.textSecondary}
               value={form.firstName}
               onChangeText={(v) => setForm({...form, firstName: v})} 
+              editable={!isSubmitting}
             />
             <TextInput 
               style={[styles.input, { flex: 1, backgroundColor: colors.card, color: colors.textPrimary }]}
@@ -130,6 +125,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
               placeholderTextColor={colors.textSecondary}
               value={form.lastName}
               onChangeText={(v) => setForm({...form, lastName: v})} 
+              editable={!isSubmitting}
             />
           </View>
 
@@ -141,6 +137,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
             onChangeText={(v) => setForm({...form, email: v})} 
             autoCapitalize="none" 
             keyboardType="email-address"
+            editable={!isSubmitting}
           />
 
           <View style={styles.passwordContainer}>
@@ -151,6 +148,7 @@ export default function SignUpScreen({ navigation, onLogin }) {
               placeholderTextColor={colors.textSecondary}
               value={form.password}
               onChangeText={(v) => setForm({...form, password: v})}
+              editable={!isSubmitting}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -172,17 +170,26 @@ export default function SignUpScreen({ navigation, onLogin }) {
           <TouchableOpacity 
             style={[styles.checkbox, agreed && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             onPress={() => setAgreed(!agreed)}
+            disabled={isSubmitting}
           >
             {agreed && <Text style={[styles.checkmark, { color: '#0f141e' }]}>✓</Text>}
           </TouchableOpacity>
           <Text style={styles.termsText}>I agree to the Terms of Service and Privacy Policy</Text>
         </View>
 
-        <TouchableOpacity style={[styles.signUpBtn, { backgroundColor: colors.accent }]} onPress={handleEmailSignUp}>
-          <Text style={[styles.btnText, { color: '#0f141e' }]}>Create Account</Text>
+        <TouchableOpacity
+          style={[styles.signUpBtn, { backgroundColor: colors.accent, opacity: isSubmitting ? 0.7 : 1 }]}
+          onPress={handleEmailSignUp}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#0f141e" />
+          ) : (
+            <Text style={[styles.btnText, { color: '#0f141e' }]}>Create Account</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginPrompt} onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity style={styles.loginPrompt} onPress={() => navigation.navigate('Login')} disabled={isSubmitting}>
           <Text style={styles.loginText}>Already have an account? <Text style={[styles.loginGreen, { color: colors.accent }]}>Log In</Text></Text>
         </TouchableOpacity>
       </View>
@@ -205,7 +212,6 @@ const styles = StyleSheet.create({
   mainBrandName: {
     fontSize: 24,
   },
-  logo: { fontSize: 24, fontFamily: 'Michroma_400Regular', textAlign: 'center', marginBottom: 20 },
   tagRow: { flexDirection: 'row', justifyContent: 'center', gap: 15, marginBottom: 20 },
   tagText: { color: '#64748b', fontSize: 10, letterSpacing: 2 },
   headerContainer: { marginBottom: 5 },

@@ -3,7 +3,6 @@ const router = express.Router();
 const pool = require('../db');
 const axios = require('axios');
 
-// GET BREAK HISTORY
 router.get('/history', async (req, res) => {
     try {
         const userId = req.query.user_id;
@@ -18,7 +17,6 @@ router.get('/history', async (req, res) => {
     }
 });
 
-// DELETE HISTORY
 router.delete('/history', async (req, res) => {
     try {
         const userId = req.query.user_id || req.query.userId || req.body.user_id;
@@ -36,7 +34,6 @@ router.delete('/history', async (req, res) => {
     }
 });
 
-// SAVE A BREAK
 router.post('/save', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -68,7 +65,6 @@ router.post('/save', async (req, res) => {
     }
 });
 
-// LOG STUDY SESSION
 router.post('/log-study', async (req, res) => {
     try {
         const { user_id, userId, study_duration } = req.body;
@@ -91,7 +87,6 @@ router.post('/log-study', async (req, res) => {
     }
 });
 
-// GET STATS
 router.get('/stats', async (req, res) => {
     try {
         const userId = req.query.user_id || req.query.userId;
@@ -144,7 +139,6 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-// GET ML RECOMMENDATION
 router.post('/recommend', async (req, res) => {
     try {
         const { fatigue, stress, time } = req.body;

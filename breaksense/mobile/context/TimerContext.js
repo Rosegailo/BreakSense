@@ -3,17 +3,19 @@ import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as Notifications from 'expo-notifications';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { API_BASE_URL } from '../Config';
 
-// Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Configure notifications (Mobile only)
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 const TimerContext = createContext();
 
@@ -57,7 +59,7 @@ export const TimerProvider = ({ children }) => {
             setTimeLeft(0);
             setTimerComplete(true);
             setIsRunning(false);
-            playRingtone();
+            if (Platform.OS !== 'web') playRingtone();
           }
         } else {
           setTimeLeft(dur * 60);
@@ -66,8 +68,10 @@ export const TimerProvider = ({ children }) => {
     };
     loadPersistence();
 
-    // Request notification permissions
-    Notifications.requestPermissionsAsync();
+    // Request notification permissions (Mobile only)
+    if (Platform.OS !== 'web') {
+      Notifications.requestPermissionsAsync();
+    }
   }, []);
 
   // Handle App State Changes (Foreground/Background)
@@ -84,7 +88,7 @@ export const TimerProvider = ({ children }) => {
             setTimeLeft(0);
             setIsRunning(false);
             setTimerComplete(true);
-            playRingtone();
+            if (Platform.OS !== 'web') playRingtone();
           } else {
             setTimeLeft(remaining);
           }
@@ -97,6 +101,7 @@ export const TimerProvider = ({ children }) => {
   }, []);
 
   const playRingtone = async () => {
+    if (Platform.OS === 'web') return;
     try {
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
@@ -112,6 +117,7 @@ export const TimerProvider = ({ children }) => {
   };
 
   const stopRingtone = async () => {
+    if (Platform.OS === 'web') return;
     try {
       if (soundRef.current) {
         await soundRef.current.stopAsync();
@@ -158,29 +164,60 @@ export const TimerProvider = ({ children }) => {
       setIsRunning(false);
       setTimerComplete(true);
       AsyncStorage.setItem('timer_is_running', 'false');
-      playRingtone();
+      if (Platform.OS !== 'web') playRingtone();
       saveStudyLog(sessionDuration);
     }
   }, [timeLeft, isRunning]);
 
   const startTimer = async () => {
+    // --- STREAK TRIGGER ON START ---
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const lastSessionDate = await AsyncStorage.getItem('last_session_date');
+
+    if (lastSessionDate !== today) {
+      let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+      if (lastSessionDate === yesterdayStr) {
+        currentStreak += 1;
+      } else {
+        currentStreak = 1; // Start new streak
+      }
+
+      await AsyncStorage.setItem('user_streak', currentStreak.toString());
+      await AsyncStorage.setItem('last_session_date', today); // Mark that we started today
+    }
+
     const endTime = Date.now() + timeLeft * 1000;
     await AsyncStorage.setItem('timer_end_time', endTime.toString());
     await AsyncStorage.setItem('timer_is_running', 'true');
 
-    // Schedule Notification
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Study Session Complete!",
-        body: "Time for a break and a quick check-in.",
-        sound: true,
-      },
-      trigger: { seconds: timeLeft },
-    });
+    // Schedule Notification (Mobile only)
+    if (Platform.OS !== 'web') {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Study Session Complete!",
+          body: "Time for a break and a quick check-in.",
+          sound: true,
+        },
+        trigger: { seconds: timeLeft },
+      });
+    }
 
     setTimerComplete(false);
     setIsRunning(true);
+  };
+
+  const pauseTimer = async () => {
+    setIsRunning(false);
+    await AsyncStorage.setItem('timer_is_running', 'false');
+    if (Platform.OS !== 'web') {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    }
   };
 
   const stopTimer = async () => {
@@ -190,8 +227,10 @@ export const TimerProvider = ({ children }) => {
 
     setIsRunning(false);
     await AsyncStorage.setItem('timer_is_running', 'false');
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await stopRingtone();
+    if (Platform.OS !== 'web') {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await stopRingtone();
+    }
     await saveStudyLog(timeSpentMinutes);
     advanceSession();
 
@@ -201,8 +240,10 @@ export const TimerProvider = ({ children }) => {
   const resetTimer = async () => {
     setIsRunning(false);
     await AsyncStorage.setItem('timer_is_running', 'false');
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    stopRingtone();
+    if (Platform.OS !== 'web') {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      stopRingtone();
+    }
     setTimeLeft(sessionDuration * 60);
     setTimerComplete(false);
   };
@@ -231,10 +272,10 @@ export const TimerProvider = ({ children }) => {
       setSessionDuration: updateSessionDuration,
       currentSession, setCurrentSession,
       totalSessions, setTotalSessions,
-      startTimer, stopTimer, resetTimer,
+      startTimer, pauseTimer, stopTimer, resetTimer,
       timerComplete, setTimerComplete,
       playRingtone, stopRingtone,
-      advanceSession, reloadSettings
+      advanceSession, reloadSettings, timeLeft
     }}>
       {children}
     </TimerContext.Provider>

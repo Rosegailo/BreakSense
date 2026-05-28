@@ -22,13 +22,8 @@ MODEL_PATH    = os.path.join(os.path.dirname(__file__), 'knn_model.joblib')
 ENCODER_PATH  = os.path.join(os.path.dirname(__file__), 'label_encoder.joblib')
 DURATION_PATH = os.path.join(os.path.dirname(__file__), 'duration_map.joblib')
 
-# ─── Seed training data ────────────────────────────────────────────────────────
-# Features: mood (1-5), stress_level (1-3), work_duration (hours)
-# Labels:   break_type, duration (minutes)
 
 TRAINING_DATA = [
-    # mood, stress, work_hours, break_type,  duration
-    # --- MIND ---
     (1, 3, 2.0, 'Box Breathing', 5),
     (2, 3, 1.0, '5-4-3-2-1 Grounding', 5),
     (3, 3, 3.0, 'Visualization', 10),
@@ -36,7 +31,6 @@ TRAINING_DATA = [
     (4, 2, 4.0, 'Gratitude Journaling', 5),
     (3, 1, 1.5, 'Single-Tasking Focus', 10),
 
-    # --- MOVE ---
     (5, 1, 2.0, 'Sun Salutation', 10),
     (4, 1, 1.0, '5-Min Walk', 5),
     (5, 2, 0.5, 'Jumping Jacks', 5),
@@ -44,7 +38,6 @@ TRAINING_DATA = [
     (3, 2, 5.0, 'Standing Desk Stretches', 5),
     (2, 1, 3.0, 'Doorway Chest Stretch', 5),
 
-    # --- NUTRITION ---
     (3, 2, 2.0, 'Hydration Reset', 5),
     (4, 1, 3.0, 'Brain Snack', 10),
     (5, 1, 5.0, 'Balanced Meal Prep', 20),
@@ -52,7 +45,6 @@ TRAINING_DATA = [
     (3, 1, 0.5, 'Mindful Chewing', 5),
     (5, 1, 1.5, 'Fruit Infused Water', 5),
 
-    # --- REST ---
     (1, 3, 5.0, 'Power Nap', 20),
     (3, 2, 0.5, 'Eye Rest 20-20-20', 5),
     (2, 2, 1.0, 'Quiet Sitting', 10),
@@ -60,7 +52,6 @@ TRAINING_DATA = [
     (4, 3, 2.0, 'Lo-fi Music Rest', 10),
     (1, 3, 3.0, 'Progressive Relaxation', 15),
 
-    # Extra samples for stability
     (1, 3, 4.0, 'Power Nap', 20),
     (2, 3, 4.0, 'Progressive Relaxation', 15),
     (5, 1, 1.0, 'Jumping Jacks', 5),

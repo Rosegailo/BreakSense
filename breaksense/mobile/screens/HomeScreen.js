@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Alert
+  View, Text, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Alert, RefreshControl
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
@@ -36,67 +36,109 @@ export default function HomeScreen() {
   });
   const [sessionsToday, setSessionsToday] = useState(0);
   const [totalStudyTime, setTotalStudyTime] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [nudgeMessage, setNudgeMessage] = useState(null);
+
+  // Load cached data immediately for faster loading
+  useEffect(() => {
+    const loadCachedData = async () => {
+      try {
+        const cachedStats = await AsyncStorage.getItem('cached_stats');
+        const cachedStreak = await AsyncStorage.getItem('user_streak');
+        if (cachedStats) {
+          const data = JSON.parse(cachedStats);
+          setStats(data);
+          setSessionsToday(data.SessionsToday || 0);
+          setTotalStudyTime(data.TotalStudyTimeToday || 0);
+          if (data.categoryCounts) setCounts(data.categoryCounts);
+        }
+        if (cachedStreak) setStreak(parseInt(cachedStreak));
+      } catch (e) {}
+    };
+    loadCachedData();
+  }, []);
+
+  const fetchData = async (isRefreshing = false) => {
+    try {
+      if (!isRefreshing) setLoading(true);
+
+      let storedUserId = user?.id || await AsyncStorage.getItem('currentUserId');
+      if (!storedUserId) {
+        setLoading(false);
+        return;
+      }
+
+      // Handle Daily Reset and Streak
+      const today = new Date().toISOString().split('T')[0];
+      const lastVisit = await AsyncStorage.getItem('last_visit_date');
+      let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
+
+      if (lastVisit !== today) {
+        // New Day Reset
+        setSessionsToday(0);
+        setTotalStudyTime(0);
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastVisit === yesterdayStr) {
+          currentStreak += 1;
+        } else if (lastVisit) {
+          currentStreak = 0;
+        } else {
+          currentStreak = 1; // First day
+        }
+
+        await AsyncStorage.setItem('user_streak', currentStreak.toString());
+        await AsyncStorage.setItem('last_visit_date', today);
+        setStreak(currentStreak);
+      } else {
+        setStreak(currentStreak);
+      }
+
+      // Nudge setting
+      const nudgeSetting = await AsyncStorage.getItem('settings_nudge');
+      setNudgeMessage(nudgeSetting === 'true' ? "Ready to start another session? Focus deep!" : null);
+
+      const urlSuffix = `?user_id=${storedUserId}`;
+      const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 8000 });
+
+      if (res.data) {
+        setStats(res.data);
+        setSessionsToday(res.data.SessionsToday || 0);
+        setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
+        if (res.data.categoryCounts) setCounts(res.data.categoryCounts);
+
+        // Cache the result
+        await AsyncStorage.setItem('cached_stats', JSON.stringify(res.data));
+      }
+    } catch (e) {
+      console.error("Home stats fetch failed:", e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
-      const fetchData = async () => {
-        try {
-          console.log("Home: Fetching data...");
-          let storedUserId = user?.id || await AsyncStorage.getItem('currentUserId');
-
-          if (!storedUserId) {
-            console.warn("Home: No User ID, stopping.");
-            setLoading(false);
-            return;
-          }
-
-          // Check for nudge setting
-          const nudgeSetting = await AsyncStorage.getItem('settings_nudge');
-          if (nudgeSetting === 'true') {
-            setNudgeMessage("Ready to start another session? Focus deep!");
-          } else {
-            setNudgeMessage(null);
-          }
-
-          const urlSuffix = `?user_id=${storedUserId}`;
-          const config = { timeout: 5000 }; // 5 second timeout
-
-          // Fetch unified stats (including category counts)
-          try {
-            console.log("Home: Calling unified stats...");
-            const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, config);
-            if (res.data) {
-                setStats(res.data);
-                setSessionsToday(res.data.SessionsToday || 0);
-                setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
-                if (res.data.categoryCounts) {
-                    setCounts(res.data.categoryCounts);
-                }
-            }
-          } catch (e) {
-            console.error("Home stats fetch failed:", e.message);
-          }
-
-          console.log("Home: Fetch complete.");
-        } catch (e) {
-          console.error("Home Main Error:", e);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      setLoading(true);
       fetchData();
     }, [user])
   );
 
-  if (loading) {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(true);
+  }, [user]);
+
+  if (loading && !stats.totalBreaks) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={{ color: colors.textPrimary, marginTop: 15, fontSize: 16 }}>Syncing Data...</Text>
+        <Text style={{ color: colors.textPrimary, marginTop: 15, fontSize: 16 }}>Analyzing your progress...</Text>
       </SafeAreaView>
     );
   }
@@ -104,12 +146,23 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Header />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+      >
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
-            Your Break <Text style={[styles.titleHighlight, { color: colors.accent, fontFamily: 'Syne-Bold' }]}>Analytics</Text>
-          </Text>
-          <Text style={[styles.subtitle, { fontFamily: 'Outfit' }]}>Track your cognitive recovery.</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
+                Today's <Text style={[styles.titleHighlight, { color: colors.accent }]}>Progress</Text>
+              </Text>
+              <Text style={[styles.subtitle, { fontFamily: 'Outfit' }]}>Your daily focus analytics.</Text>
+            </View>
+            <View style={[styles.streakBadge, { backgroundColor: colors.card, borderColor: colors.accent }]}>
+              <Ionicons name="flame" size={20} color={colors.accent} />
+              <Text style={[styles.streakText, { color: colors.textPrimary }]}>{streak}d</Text>
+            </View>
+          </View>
         </View>
 
         {nudgeMessage && (
@@ -122,38 +175,40 @@ export default function HomeScreen() {
         <View style={styles.statsGrid}>
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Total Breaks</Text>
+              <Text style={[styles.statLabel]}>Study Sessions</Text>
+              <Text style={[styles.statValue, { color: '#FF8C42', fontFamily: 'Inter-Bold' }]}>{sessionsToday}</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.statLabel]}>Study Time</Text>
+              <Text style={[styles.statValue, { color: '#FF5C8D', fontFamily: 'Inter-Bold' }]}>{totalStudyTime}m</Text>
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.statLabel]}>Total Breaks</Text>
               <Text style={[styles.statValue, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>{stats.totalBreaks || 0}</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Ave Score</Text>
+              <Text style={[styles.statLabel]}>Ave Score</Text>
               <Text style={[styles.statValue, { color: '#7F00FF', fontFamily: 'Inter-Bold' }]}>{Number(stats.avgScore || 0).toFixed(1)}</Text>
             </View>
           </View>
+
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Best Score</Text>
+              <Text style={[styles.statLabel]}>Best Score</Text>
               <Text style={[styles.statValue, { color: '#FACC15', fontFamily: 'Inter-Bold' }]}>{stats.bestScore || 0}</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Top Category</Text>
+              <Text style={[styles.statLabel]}>Top Category</Text>
               <Text style={[styles.statValue, {
                 color: (stats.topCategory && stats.topCategory !== 'None') ? '#FACC15' : colors.textSecondary,
                 fontSize: 13,
                 fontFamily: 'Inter-Bold'
               }]}>
-                {(!stats.topCategory || stats.topCategory === 'None') ? 'No Breaks Yet' : stats.topCategory}
+                {(!stats.topCategory || stats.topCategory === 'None') ? 'None' : stats.topCategory}
               </Text>
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Study Sessions Today</Text>
-              <Text style={[styles.statValue, { color: '#FF8C42', fontFamily: 'Inter-Bold' }]}>{sessionsToday}</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.statLabel, { fontFamily: 'Inter'}]}>Total Study Time</Text>
-              <Text style={[styles.statValue, { color: '#FF5C8D', fontSize: 16, fontFamily: 'Inter-Bold' }]}>{totalStudyTime}m</Text>
             </View>
           </View>
         </View>
@@ -182,31 +237,14 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* WORKINGS SECTION */}
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 20 }]}>
           <Text style={[styles.cardHeader, { color: '#64748b', marginBottom: 15 }]}>HOW BREAKSENSE WORKS</Text>
           <View style={[styles.divider, { backgroundColor: colors.border, marginBottom: 20 }]} />
           {[
-            {
-              num: 1,
-              title: 'Study Session',
-              desc: 'Set your Promodoro timer and focus deep.'
-            },
-            {
-              num: 2,
-              title: 'Check In',
-              desc: 'Rate fatigue, stress & available break time.'
-            },
-            {
-              num: 3,
-              title: 'KNN Predicts',
-              desc: 'Nearest past sessions vote on best break category.'
-            },
-            {
-              num: 4,
-              title: 'Rate & Repeat',
-              desc: 'Your score trains the model. Resume studying refreshed.'
-            }
+            { num: 1, title: 'Study Session', desc: 'Set your Promodoro timer and focus deep.' },
+            { num: 2, title: 'Check In', desc: 'Rate fatigue, stress & available break time.' },
+            { num: 3, title: 'KNN Predicts', desc: 'Nearest past sessions vote on best break category.' },
+            { num: 4, title: 'Rate & Repeat', desc: 'Your score trains the model. Resume studying refreshed.' }
           ].map((step) => (
             <View key={step.num} style={[styles.stepCard, { backgroundColor: colors.background }]}>
               <View style={[styles.stepAccent, { backgroundColor: colors.accent }]} />
@@ -224,67 +262,34 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f141e' },
+  container: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 20 },
-  titleHighlight: { color: '#39ef8d' },
+  title: { fontSize: 22 },
+  titleHighlight: { },
   subtitle: { color: '#888', fontSize: 14 },
-  statsGrid: { gap: 12, marginBottom: 15, fontFamily: 'Inter' },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1 },
+  streakText: { marginLeft: 4, fontWeight: 'bold', fontSize: 14 },
+  statsGrid: { gap: 12, marginBottom: 15 },
   row: { flexDirection: 'row', gap: 10 },
-  statCard: { flex: 1, backgroundColor: '#1b222d', padding: 15, borderRadius: 16, height: 90, justifyContent: 'center' },
-  statLabel: { color: '#64748b', fontSize: 11, textTransform: 'uppercase', marginBottom: 4 },
+  statCard: { flex: 1, padding: 15, borderRadius: 16, height: 90, justifyContent: 'center' },
+  statLabel: { color: '#64748b', fontSize: 10, textTransform: 'uppercase', marginBottom: 4, fontFamily: 'Inter' },
   statValue: { fontSize: 24 },
-  mainCard: { backgroundColor: '#1b222d', borderRadius: 20, padding: 20, marginBottom: 30, borderWidth: 1, borderColor: '#2a3342' },
-  cardHeader: { color: '#39ef8d', fontSize: 13, letterSpacing: 1.5, marginBottom: 5, fontFamily: 'JetBrains' },
-  divider: { height: 1, backgroundColor: '#2a3342', marginVertical: 12 },
+  mainCard: { borderRadius: 20, padding: 20, marginBottom: 30, borderWidth: 1 },
+  cardHeader: { fontSize: 13, letterSpacing: 1.5, marginBottom: 5, fontFamily: 'JetBrains' },
+  divider: { height: 1, marginVertical: 12 },
   barItem: { marginBottom: 16 },
   barRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  barLabel: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  barCount: { color: '#39ef8d', fontWeight: 'bold' },
-  barBg: { height: 6, backgroundColor: '#0f141e', borderRadius: 3, overflow: 'hidden' },
+  barLabel: { fontSize: 13, fontWeight: '600' },
+  barCount: { fontWeight: 'bold' },
+  barBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
   barFill: { height: '100%' },
-  workingsSection: { marginBottom: 30 },
-  stepCard: {
-    flexDirection: 'row',
-    borderRadius: 20,
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  stepAccent: {
-      width: 4,                   // thickness of the green line
-      alignSelf: 'stretch',       // stretches full height of the card
-      backgroundColor: '#39ef8d',
-    },
-  stepContent: {
-    flex: 1,
-   padding: 16,
-    paddingLeft: 16
-  },
-  stepNumberLarge: {
-    fontSize: 32,
-    marginBottom: 5
-  },
-  stepTitleBold: {
-    fontSize: 15,
-    marginBottom: 5
-  },
-  stepDescSubtle: {
-    fontSize: 12,
-    lineHeight: 20
-  },
-  notificationBox: {
-    flexDirection: 'row',
-    padding: 15,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    marginBottom: 20
-  },
-  notificationText: {
-    fontSize: 13,
-    fontWeight: 'bold'
-  }
+  stepCard: { flexDirection: 'row', borderRadius: 20, marginBottom: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  stepAccent: { width: 4, alignSelf: 'stretch' },
+  stepContent: { flex: 1, padding: 16 },
+  stepNumberLarge: { fontSize: 32, marginBottom: 5 },
+  stepTitleBold: { fontSize: 15, marginBottom: 5 },
+  stepDescSubtle: { fontSize: 12, lineHeight: 20 },
+  notificationBox: { flexDirection: 'row', padding: 15, borderRadius: 16, borderWidth: 1, alignItems: 'center', marginBottom: 20 },
+  notificationText: { fontSize: 13, fontWeight: 'bold' }
 });

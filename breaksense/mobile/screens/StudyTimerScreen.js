@@ -58,8 +58,8 @@ export default function StudyTimerScreen({ navigation }) {
         }]
       );
 
-      // Update local progress counters
-      setSessionsCount(prev => (typeof prev === 'number' ? prev : parseInt(prev) || 0) + 1);
+      // Optimistically update local counters
+      setSessionsCount(prev => (parseInt(prev) || 0) + 1);
       setTotalStudyTime(prev => {
         const currentNum = parseInt(prev) || 0;
         return `${currentNum + sessionDuration}m`;
@@ -76,20 +76,47 @@ export default function StudyTimerScreen({ navigation }) {
     }, [])
   );
 
-  // Fetch user stats
+  // Fetch user stats with Daily Reset logic
   useFocusEffect(
     useCallback(() => {
       const fetchStats = async () => {
         try {
           const userId = await AsyncStorage.getItem('currentUserId');
-          if (userId) {
-            const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}`);
-            if (response.data) {
-              setSessionsCount(response.data.SessionsToday || 0);
-              const studyTime = response.data.TotalStudyTimeToday || 0;
-              setTotalStudyTime(`${studyTime}m`);
-              setDayStreak(response.data.DayStreak || 0);
+          if (!userId) return;
+
+          // --- DAILY RESET & STREAK LOGIC ---
+          const today = new Date().toISOString().split('T')[0];
+          const lastVisit = await AsyncStorage.getItem('last_visit_date');
+          let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
+
+          if (lastVisit !== today) {
+            // New Day: Display zeros until server data confirms otherwise
+            setSessionsCount(0);
+            setTotalStudyTime('0m');
+
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (lastVisit === yesterdayStr) {
+              currentStreak += 1;
+            } else if (lastVisit) {
+              currentStreak = 0;
+            } else {
+              currentStreak = 1;
             }
+
+            await AsyncStorage.setItem('user_streak', currentStreak.toString());
+            await AsyncStorage.setItem('last_visit_date', today);
+          }
+          setDayStreak(currentStreak);
+          // ----------------------------------
+
+          const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}`, { timeout: 8000 });
+          if (response.data) {
+            setSessionsCount(response.data.SessionsToday || 0);
+            const studyTime = response.data.TotalStudyTimeToday || 0;
+            setTotalStudyTime(`${studyTime}m`);
           }
         } catch (error) {
           console.error('Failed to fetch user stats:', error);
@@ -121,7 +148,7 @@ export default function StudyTimerScreen({ navigation }) {
         type: 'success'
       });
 
-      setSessionsCount(prev => (typeof prev === 'number' ? prev : parseInt(prev) || 0) + 1);
+      setSessionsCount(prev => (parseInt(prev) || 0) + 1);
       setTotalStudyTime(prev => {
         const currentNum = parseInt(prev) || 0;
         return `${currentNum + timeSpentMinutes}m`;
@@ -172,7 +199,7 @@ export default function StudyTimerScreen({ navigation }) {
 
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardHeader, { color: '#64748b' }]}>SESSION DURATION</Text>
-          <View style={styles.durationButtons}>
+          <div style={styles.durationButtons}>
             {[15, 25, 45, 60].map((duration) => (
               <TouchableOpacity 
                 key={duration}
@@ -191,7 +218,7 @@ export default function StudyTimerScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </div>
 
           <View style={styles.timerContainer}>
             <View style={[styles.ringBackground, { borderColor: colors.background }]}>
@@ -274,8 +301,8 @@ export default function StudyTimerScreen({ navigation }) {
               <Text style={styles.progressLabel}>STUDY TIME</Text>
             </View>
             <View style={[styles.progressBox, { backgroundColor: colors.background }]}>
-              <Text style={styles.progressValue}>{dayStreak}</Text>
-              <Text style={styles.progressLabel}>DAY STREAK</Text>
+              <Text style={styles.progressValue}>{dayStreak}d</Text>
+              <Text style={styles.progressLabel}>STREAK</Text>
             </View>
           </View>
         </View>
@@ -286,11 +313,11 @@ export default function StudyTimerScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f141e' },
+  container: { flex: 1 },
   content: { padding: 20 },
   titleContainer: { marginBottom: 25 },
-  title: { color: '#fff', fontSize: 20 },
-  titleHighlight: { color: '#39ef8d' },
+  title: { fontSize: 20 },
+  titleHighlight: { },
     subtitle: { color: '#888', fontSize: 13, marginTop: 5 },
   notificationBox: {
     paddingVertical: 12,
@@ -317,16 +344,13 @@ const styles = StyleSheet.create({
   successText: { color: '#00FF66' },
   dangerText: { color: '#FF3B30' },
   mainCard: { 
-    backgroundColor: '#1b222d', 
-    borderRadius: 20, 
+    borderRadius: 20,
     padding: 20, 
     marginBottom: 20, 
     borderWidth: 1, 
-    borderColor: '#2a3342' 
   },
   cardHeader: { 
-    color: '#FFD700', 
-    fontSize: 11, 
+    fontSize: 11,
     letterSpacing: 1.5,
     marginBottom: 12, 
     textAlign: 'center' 
@@ -341,23 +365,12 @@ const styles = StyleSheet.create({
     flex: 1, 
     paddingVertical: 12, 
     borderRadius: 12, 
-    backgroundColor: '#2a3342', 
-    alignItems: 'center', 
+    alignItems: 'center',
     borderWidth: 1, 
-    borderColor: '#333b49' 
-  },
-  durationBtnActive: { 
-    backgroundColor: '#FFD700', 
-    borderColor: '#FFD700' 
   },
   durationBtnText: { 
-    color: '#64748b', 
-    fontSize: 12, 
-    fontWeight: 'bold' 
-  },
-  durationBtnTextActive: { 
-    color: '#000', 
-    fontWeight: 'bold' 
+    fontSize: 12,
+    fontWeight: 'bold'
   },
   timerContainer: { 
     alignItems: 'center', 
@@ -368,7 +381,6 @@ const styles = StyleSheet.create({
     height: 230,
     borderRadius: 115,
     borderWidth: 8,
-    borderColor: '#2a3342',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -394,10 +406,6 @@ const styles = StyleSheet.create({
     width: 10, 
     height: 10, 
     borderRadius: 5, 
-    backgroundColor: '#2a3342' 
-  },
-  activeDot: { 
-    backgroundColor: '#FFD700' 
   },
   controlsRow: {
     flexDirection: 'row',
@@ -421,8 +429,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  stopSquare: {
-  },
   disabledBtn: {
     opacity: 0.6
   },
@@ -440,8 +446,7 @@ const styles = StyleSheet.create({
     flex: 1, 
     alignItems: 'center', 
     paddingVertical: 10, 
-    backgroundColor: '#0f141e', 
-    borderRadius: 16, 
+    borderRadius: 16,
     marginHorizontal: 4 
   },
   progressValue: { 

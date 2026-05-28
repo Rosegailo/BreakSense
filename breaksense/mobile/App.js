@@ -180,6 +180,7 @@ function AuthStackScreens({ onLogin }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [fontsLoaded] = useFonts({
     'Syne_800ExtraBold': Syne_800ExtraBold,
@@ -191,11 +192,27 @@ export default function App() {
     'Michroma': Michroma_400Regular,
   });
 
+  React.useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (e) {
+        console.error("Failed to load user", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkUser();
+  }, []);
+
   const handleLogin = (userData) => {
     setUser(userData);
   };
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || isLoading) {
     return null; // Or a <SplashScreen /> component
   }
 

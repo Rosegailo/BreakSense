@@ -11,6 +11,7 @@ export default function LoginScreen({ navigation, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { colors } = useTheme();
 
   const handleLogin = async () => {
@@ -19,11 +20,12 @@ export default function LoginScreen({ navigation, onLogin }) {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         email: email.trim(),
         password,
-      });
+      }, { timeout: 10000 });
 
       if (response.data && response.data.success) {
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
@@ -32,37 +34,15 @@ export default function LoginScreen({ navigation, onLogin }) {
         onLogin(response.data.user); 
       } else {
         const msg = response.data.message || 'Invalid credentials';
-        if (Platform.OS === 'web') {
-          window.alert(`Login Failed: ${msg}`);
-        } else {
-          Alert.alert('Login Failed', msg);
-        }
+        Alert.alert('Login Failed', msg);
       }
     } catch (error) {
-      console.error("Login Error Detail:", error.response?.data || error.message);
-
-      let errorMessage = 'Something went wrong. Please check your internet connection.';
-
-      if (error.response) {
-        // Server responded with a status code outside the 2xx range
-        errorMessage = error.response.data.message || `Server Error: ${error.response.status}`;
-      } else if (error.request) {
-        // Request was made but no response was received
-        errorMessage = "Cannot connect to server. Please check if your Render backend is awake or if your URL in Config.js is correct.";
-      } else {
-        // Something happened in setting up the request
-        errorMessage = error.message;
-      }
-
-      if (Platform.OS === 'web') {
-        window.alert(`Login Failed: ${errorMessage}`);
-      } else {
-        Alert.alert('Login Failed', errorMessage);
-      }
+      console.error("Login Error Detail:", error.message);
+      Alert.alert('Login Failed', 'Something went wrong. Please check your internet connection.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -73,7 +53,7 @@ export default function LoginScreen({ navigation, onLogin }) {
             style={styles.mainIcon}
             resizeMode="contain"
           />
-          <Text style={[styles.mainBrandName, { color: colors.textPrimary }, { fontFamily: 'Syne-Bold' }]}>
+          <Text style={[styles.mainBrandName, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>
             Break<Text style={{ color: colors.accent }}>Sense</Text>
           </Text>
         </View>
@@ -83,7 +63,7 @@ export default function LoginScreen({ navigation, onLogin }) {
           <Text style={styles.tagText}>RECOVERY</Text>
         </View>
         
-        <AuthToggle activeTab activeTab="Login" onTabChange={(tab) => navigation.navigate(tab)} />
+        <AuthToggle activeTab="Login" onTabChange={(tab) => navigation.navigate(tab)} />
 
         <View style={styles.welcomeContainer}>
           <Text style={[styles.headerWhite, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Welcome</Text>
@@ -101,6 +81,7 @@ export default function LoginScreen({ navigation, onLogin }) {
             onChangeText={setEmail} 
             autoCapitalize="none" 
             keyboardType="email-address"
+            editable={!isSubmitting}
           />
           <View style={styles.passwordContainer}>
             <TextInput
@@ -110,6 +91,7 @@ export default function LoginScreen({ navigation, onLogin }) {
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
+              editable={!isSubmitting}
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -124,12 +106,19 @@ export default function LoginScreen({ navigation, onLogin }) {
           </View>
         </View>
 
-        {/* Updated: Changed handleEmailLogin to handleLogin */}
-        <TouchableOpacity style={[styles.loginBtn, { backgroundColor: colors.accent }]} onPress={handleLogin}>
-          <Text style={[styles.loginText, { color: '#0f141e' }]}>Continue with email</Text>
+        <TouchableOpacity
+          style={[styles.loginBtn, { backgroundColor: colors.accent, opacity: isSubmitting ? 0.7 : 1 }]}
+          onPress={handleLogin}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#0f141e" />
+          ) : (
+            <Text style={[styles.loginText, { color: '#0f141e' }]}>Continue with email</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signUpPrompt} onPress={() => navigation.navigate('SignUp')}>
+        <TouchableOpacity style={styles.signUpPrompt} onPress={() => navigation.navigate('SignUp')} disabled={isSubmitting}>
           <Text style={styles.signUpText}>Don't have an account? <Text style={[styles.signUpGreen, { color: colors.accent }]}>Sign up free</Text></Text>
         </TouchableOpacity>
       </View>

@@ -16,15 +16,11 @@
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.rosemarie.breaksense",
+      "bundleIdentifier": "com.breaksense",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.rosemarie.breaksense",
-      "adaptiveIcon": {
-        "foregroundImage": "./img/app_logo.png",
-        "backgroundColor": "#0f141e"
-      },
+      "package": "com.breaksense",
       "permissions": [
         "INTERNET"
       ]

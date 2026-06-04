@@ -112,7 +112,7 @@ router.get('/stats', async (req, res) => {
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        const [userRows] = await pool.query('SELECT SessionsToday, TotalStudyTimeToday, DayStreak FROM users WHERE id = ?', [uId]);
+        const [userRows] = await pool.query('SELECT SessionsToday, TotalStudyTimeToday, DayStreak, pomodoro_duration, sessions_per_cycle FROM users WHERE id = ?', [uId]);
 
         const data = statsRows[0] || {};
         const user = userRows[0] || {};
@@ -126,6 +126,8 @@ router.get('/stats', async (req, res) => {
             SessionsToday: parseInt(user.SessionsToday || 0),
             TotalStudyTimeToday: parseInt(user.TotalStudyTimeToday || 0),
             DayStreak: parseInt(user.DayStreak || 0),
+            pomodoro_duration: user.pomodoro_duration || '25 min',
+            sessions_per_cycle: user.sessions_per_cycle || 4,
             categoryCounts: {
                 'Physical Movement': parseInt(data.countPhysical),
                 'Mindfulness': parseInt(data.countMind),

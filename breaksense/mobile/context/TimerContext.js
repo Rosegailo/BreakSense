@@ -68,17 +68,14 @@ export const TimerProvider = ({ children }) => {
     };
     loadPersistence();
 
-    // Request notification permissions (Mobile only)
     if (Platform.OS !== 'web') {
       Notifications.requestPermissionsAsync();
     }
   }, []);
 
-  // Handle App State Changes (Foreground/Background)
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        // App came to foreground
         const savedEndTime = await AsyncStorage.getItem('timer_end_time');
         const savedIsRunning = await AsyncStorage.getItem('timer_is_running');
 
@@ -197,15 +194,18 @@ export const TimerProvider = ({ children }) => {
 
     // Schedule Notification (Mobile only)
     if (Platform.OS !== 'web') {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Study Session Complete!",
-          body: "Time for a break and a quick check-in.",
-          sound: true,
-        },
-        trigger: { seconds: timeLeft },
-      });
+      const studyAlerts = await AsyncStorage.getItem('settings_studyAlerts');
+      if (studyAlerts !== 'false') { // Default to true if not set
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Study Session Complete!",
+            body: "Time for a break and a quick check-in.",
+            sound: true,
+          },
+          trigger: { seconds: timeLeft },
+        });
+      }
     }
 
     setTimerComplete(false);
@@ -263,7 +263,21 @@ export const TimerProvider = ({ children }) => {
   };
 
   const reloadSettings = async () => {
-     // Implementation omitted for brevity
+    try {
+      const savedSessions = await AsyncStorage.getItem('settings_sessions');
+      const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
+
+      if (savedSessions) setTotalSessions(parseInt(savedSessions));
+      if (savedPomodoro) {
+        const dur = parseInt(savedPomodoro.split(' ')[0]);
+        setSessionDuration(dur);
+        if (!isRunning) {
+          setTimeLeft(dur * 60);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to reload settings:", e);
+    }
   };
 
   return (

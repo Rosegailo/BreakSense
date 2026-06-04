@@ -72,7 +72,6 @@ def train():
     X = df[['mood', 'stress', 'work_hours']].values
     y = df['break_type'].values
 
-    # Duration map: average recommended duration per break type
     duration_map = df.groupby('break_type')['duration'].mean().to_dict()
 
     le = LabelEncoder()
@@ -90,11 +89,10 @@ def train():
 
     y_pred = pipeline.predict(X_test)
     print("── Classification Report ──")
-    # Use zero_division parameter to avoid errors if some classes are missing from a small test split
     print(classification_report(
         y_test, 
         y_pred, 
-        labels=np.arange(len(le.classes_)), # Tells it to look for all class indices
+        labels=np.arange(len(le.classes_)),
         target_names=le.classes_, 
         zero_division=0
     ))

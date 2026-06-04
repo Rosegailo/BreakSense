@@ -4,6 +4,7 @@ import {
   ScrollView, SafeAreaView, Alert, ActivityIndicator, Vibration
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import Header from './components/Header';
@@ -109,19 +110,44 @@ export default function RecommendScreen({ navigation, route }) {
   const handleFinish = async () => {
     setTimerRunning(false);
     setIsFinished(true);
-    Vibration.vibrate(500);
 
-    // Only play ringtone if the timer actually hit zero
-    if (secondsLeft <= 0) {
-      await playRingtone();
-      Alert.alert(
-        "Break Finished!",
-        "Time to stop the alarm and log your progress.",
-        [{ text: "STOP ALARM", onPress: () => stopRingtone() }]
-      );
+    const breakAlerts = await AsyncStorage.getItem('settings_breakAlerts');
+    const nudge = await AsyncStorage.getItem('settings_nudge');
+
+    if (breakAlerts !== 'false') {
+      Vibration.vibrate(500);
+
+      // Only play ringtone if the timer actually hit zero
+      if (secondsLeft <= 0) {
+        await playRingtone();
+        Alert.alert(
+          "Break Finished!",
+          "Time to stop the alarm and log your progress.",
+          [{
+            text: "STOP ALARM",
+            onPress: async () => {
+              await stopRingtone();
+              if (nudge === 'true' && Platform.OS !== 'web') {
+                 // Nudge logic: Schedule a notification in 1 minute to remind to start next session
+                 await Notifications.scheduleNotificationAsync({
+                   content: {
+                     title: "Ready to start again?",
+                     body: "Your break is over. Let's get back to focus!",
+                     sound: true,
+                   },
+                   trigger: { seconds: 60 },
+                 });
+              }
+            }
+          }]
+        );
+      } else {
+        // If user clicked "Stop Alarm" (Stop Early)
+        await stopRingtone();
+      }
     } else {
-      // If user clicked "Stop Alarm" (Stop Early)
-      await stopRingtone();
+       // Just stop ringtone if it was playing and notifications are off
+       await stopRingtone();
     }
   };
 

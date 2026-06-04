@@ -23,8 +23,8 @@ router.post('/signup', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         await pool.query(
-            'INSERT INTO users (first_name, last_name, email, password) VALUES (?, ?, ?, ?)',
-            [firstName, lastName, email, hashedPassword]
+            'INSERT INTO users (first_name, last_name, email, password, pomodoro_duration, sessions_per_cycle) VALUES (?, ?, ?, ?, ?, ?)',
+            [firstName, lastName, email, hashedPassword, '25 min', 4]
         );
 
         res.json({ success: true, message: "User registered" });
@@ -56,7 +56,9 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 first_name: user.first_name,
-                last_name: user.last_name
+                last_name: user.last_name,
+                pomodoro_duration: user.pomodoro_duration || '25 min',
+                sessions_per_cycle: user.sessions_per_cycle || 4
             }
         });
 
@@ -68,11 +70,11 @@ router.post('/login', async (req, res) => {
 
 router.put('/update-profile', async (req, res) => {
     try {
-        const { userId, firstName, lastName } = req.body;
+        const { userId, firstName, lastName, pomodoroDuration, sessionsPerCycle } = req.body;
 
         await pool.query(
-            'UPDATE users SET first_name = ?, last_name = ? WHERE id = ?',
-            [firstName, lastName, userId]
+            'UPDATE users SET first_name = ?, last_name = ?, pomodoro_duration = ?, sessions_per_cycle = ? WHERE id = ?',
+            [firstName, lastName, pomodoroDuration, sessionsPerCycle, userId]
         );
 
         res.json({ success: true, message: "Profile updated successfully." });

@@ -34,11 +34,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 0,
-    paddingTop: 35, // Added padding for status bar area
+    paddingTop: 35,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#2a3342',
-    zIndex: 100, // Ensure it stays on top
+    zIndex: 100,
   },
   logoWrapper: {
     flexDirection: 'row',

@@ -41,7 +41,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [nudgeMessage, setNudgeMessage] = useState(null);
 
-  // Load cached data immediately for faster loading
   useEffect(() => {
     const loadCachedData = async () => {
       try {
@@ -54,7 +53,6 @@ export default function HomeScreen() {
 
         if (cachedStreak) {
           const s = parseInt(cachedStreak);
-          // Only show completed days
           setStreak(lastSessionDate === today ? Math.max(0, s - 1) : s);
         }
 

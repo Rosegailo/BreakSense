@@ -92,14 +92,39 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
-  const handlePomodoroChange = (val) => {
+  const handlePomodoroChange = async (val) => {
     setPomodoro(val);
-    saveSetting('settings_pomodoro', val);
+    await saveSetting('settings_pomodoro', val);
+    // Sync to backend if logged in
+    if (user?.id) {
+      try {
+        const dur = parseInt(val.split(' ')[0]);
+        await axios.put(`${API_BASE_URL}/auth/update-profile`, {
+          userId: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          pomodoroDuration: val,
+          sessionsPerCycle: sessions
+        });
+      } catch (e) { console.log("Sync error", e); }
+    }
   };
 
-  const handleSessionsChange = (val) => {
+  const handleSessionsChange = async (val) => {
     setSessions(val);
-    saveSetting('settings_sessions', val);
+    await saveSetting('settings_sessions', val);
+    // Sync to backend if logged in
+    if (user?.id) {
+      try {
+        await axios.put(`${API_BASE_URL}/auth/update-profile`, {
+          userId: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          pomodoroDuration: pomodoro,
+          sessionsPerCycle: val
+        });
+      } catch (e) { console.log("Sync error", e); }
+    }
   };
 
   const handleStudyAlertsChange = (val) => {
@@ -193,7 +218,9 @@ export default function SettingsScreen({ navigation }) {
       const response = await axios.put(`${API_BASE_URL}/auth/update-profile`, {
         userId: user.id,
         firstName,
-        lastName
+        lastName,
+        pomodoroDuration: pomodoro,
+        sessionsPerCycle: sessions
       });
 
       if (response.data.success) {

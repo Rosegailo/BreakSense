@@ -106,40 +106,44 @@ router.post('/log-study', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
     try {
-        const userId = req.query.user_id || req.query.userId;
-        const clientDate = req.query.date;
+        const userId = (req.query.user_id || req.query.userId || '').trim();
+        const clientDate = (req.query.date || '').trim();
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-        // Use the exact same ID handling as the working /history route
         const uId = userId;
-        const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
+        const dateToCompare = clientDate || new Date().toISOString().split('T')[0];
 
         // 1. Get History Stats (Total Breaks, Categories, Scores)
         const [statsRows] = await pool.query(`
             SELECT
-                SUM(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN 1 ELSE 0 END) as totalBreaks,
-                IFNULL(AVG(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN rating END), 0) as avgScore,
-                IFNULL(MAX(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN rating END), 0) as bestScore,
-                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%physical%' OR TRIM(LOWER(category)) LIKE '%move%' THEN 1 ELSE 0 END) as countPhysical,
-                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%mind%' THEN 1 ELSE 0 END) as countMind,
-                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%nutrition%' THEN 1 ELSE 0 END) as countNutrition,
-                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest
+                COUNT(CASE WHEN LOWER(TRIM(category)) != 'focus time' THEN 1 END) as totalBreaks,
+                IFNULL(AVG(CASE WHEN LOWER(TRIM(category)) != 'focus time' THEN rating END), 0) as avgScore,
+                IFNULL(MAX(CASE WHEN LOWER(TRIM(category)) != 'focus time' THEN rating END), 0) as bestScore,
+                COUNT(CASE WHEN LOWER(category) LIKE '%physical%' OR LOWER(category) LIKE '%move%' THEN 1 END) as countPhysical,
+                COUNT(CASE WHEN LOWER(category) LIKE '%mind%' THEN 1 END) as countMind,
+                COUNT(CASE WHEN LOWER(category) LIKE '%nutrition%' THEN 1 END) as countNutrition,
+                COUNT(CASE WHEN LOWER(category) LIKE '%rest%' THEN 1 END) as countRest,
+
+                /* Calculate Today's stats directly from history as a source of truth */
+                COUNT(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN 1 END) as SessionsHistoryToday,
+                IFNULL(SUM(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN duration_taken ELSE 0 END), 0) as StudyTimeHistoryToday
             FROM breaks_history
             WHERE user_id = ?
-        `, [uId]);
+        `, [dateToCompare, dateToCompare, uId]);
 
         // 2. Get Top Category
         const [topCatRows] = await pool.query(`
             SELECT category FROM breaks_history
-            WHERE user_id = ? AND TRIM(LOWER(category)) != 'focus time'
+            WHERE user_id = ? AND LOWER(TRIM(category)) != 'focus time'
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        // 3. Get User Profile and "Today" stats directly from the columns you provided
+        // 3. Get User Profile and fallback stats
         const [userRows] = await pool.query(`
             SELECT
-                IF(DATE(LastStudyDate) = ${dateToCompare}, SessionsToday, 0) as SessionsToday,
-                IF(DATE(LastStudyDate) = ${dateToCompare}, TotalStudyTimeToday, 0) as TotalStudyTimeToday,
+                SessionsToday,
+                TotalStudyTimeToday,
+                DATE_FORMAT(LastStudyDate, '%Y-%m-%d') as LastDate,
                 DayStreak,
                 pomodoro_duration,
                 sessions_per_cycle
@@ -151,14 +155,18 @@ router.get('/stats', async (req, res) => {
         const user = userRows[0] || {};
         const topCat = topCatRows[0] || { category: 'None' };
 
+        // Determine Today's stats: Use History count as primary truth for dashboard sync
+        const sessionsToday = parseInt(data.SessionsHistoryToday) || 0;
+        const studyTimeToday = parseInt(data.StudyTimeHistoryToday) || 0;
+
         res.json({
             success: true,
             totalBreaks: parseInt(data.totalBreaks) || 0,
             avgScore: parseFloat(data.avgScore) || 0,
             bestScore: parseInt(data.bestScore) || 0,
-            topCategory: topCat.category,
-            SessionsToday: parseInt(user.SessionsToday) || 0,
-            TotalStudyTimeToday: parseInt(user.TotalStudyTimeToday) || 0,
+            topCategory: topCat.category || 'None',
+            SessionsToday: sessionsToday,
+            TotalStudyTimeToday: studyTimeToday,
             DayStreak: parseInt(user.DayStreak || 0),
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,
@@ -170,7 +178,7 @@ router.get('/stats', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error("Sync Error:", err);
+        console.error("Stats Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

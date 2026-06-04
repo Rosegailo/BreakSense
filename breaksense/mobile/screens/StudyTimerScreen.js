@@ -62,7 +62,7 @@ export default function StudyTimerScreen({ navigation }) {
       setSessionsCount(prev => (parseInt(prev) || 0) + 1);
       setTotalStudyTime(prev => {
         const currentNum = parseInt(prev) || 0;
-        return `${currentNum + sessionDuration}m`;
+        return currentNum + sessionDuration;
       });
     }
   }, [timerComplete]);
@@ -97,6 +97,8 @@ export default function StudyTimerScreen({ navigation }) {
           if (lastVisit !== today) {
             setSessionsCount(0);
             setTotalStudyTime(0);
+            setCurrentSession(1); // Reset to session 1 at start of new day
+            await AsyncStorage.setItem('timer_current_session', '1');
 
             const yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -119,8 +121,16 @@ export default function StudyTimerScreen({ navigation }) {
           const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}&date=${today}`, { timeout: 15000 });
           if (response.data) {
             // Trust server data for today's progress
-            setSessionsCount(response.data.SessionsToday || 0);
+            const completed = response.data.SessionsToday || 0;
+            setSessionsCount(completed);
             setTotalStudyTime(response.data.TotalStudyTimeToday || 0);
+
+            // SYNC TIMER SESSION: If not running, set to next session after what's completed today
+            if (!isRunning) {
+              const nextSess = (completed % totalSessions) + 1;
+              setCurrentSession(nextSess);
+              await AsyncStorage.setItem('timer_current_session', nextSess.toString());
+            }
           }
         } catch (error) {
           console.error('Failed to fetch user stats:', error);
@@ -155,7 +165,7 @@ export default function StudyTimerScreen({ navigation }) {
       setSessionsCount(prev => (parseInt(prev) || 0) + 1);
       setTotalStudyTime(prev => {
         const currentNum = parseInt(prev) || 0;
-        return `${currentNum + timeSpentMinutes}m`;
+        return currentNum + timeSpentMinutes;
       });
 
       // Go DIRECTLY to Check-in

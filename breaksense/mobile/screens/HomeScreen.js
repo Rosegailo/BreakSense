@@ -130,9 +130,9 @@ export default function HomeScreen() {
       const nudgeSetting = await AsyncStorage.getItem('settings_nudge');
       setNudgeMessage(nudgeSetting === 'true' ? "Ready to start another session? Focus deep!" : null);
 
-      const urlSuffix = `?user_id=${storedUserId}`;
+      const urlSuffix = `?user_id=${storedUserId}&date=${today}`;
       console.log(`[Home] Fetching stats for user: ${storedUserId} at ${API_BASE_URL}/breaks/stats${urlSuffix}`);
-      const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 10000 });
+      const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 15000 });
 
       if (res.data) {
         console.log("[Home] Stats received:", res.data);
@@ -149,6 +149,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.error("Home stats fetch failed:", e.message);
+      Alert.alert("Sync Error", "Could not connect to the server. Please check your internet connection.");
     } finally {
       setLoading(false);
       setRefreshing(false);

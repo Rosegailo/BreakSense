@@ -96,7 +96,7 @@ export default function StudyTimerScreen({ navigation }) {
 
           if (lastVisit !== today) {
             setSessionsCount(0);
-            setTotalStudyTime('0m');
+            setTotalStudyTime(0);
 
             const yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -116,7 +116,7 @@ export default function StudyTimerScreen({ navigation }) {
             setDayStreak(currentStreak);
           }
 
-          const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}`, { timeout: 8000 });
+          const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}&date=${today}`, { timeout: 15000 });
           if (response.data) {
             // Trust server data for today's progress
             setSessionsCount(response.data.SessionsToday || 0);

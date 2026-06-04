@@ -68,25 +68,28 @@ router.post('/save', async (req, res) => {
 router.post('/log-study', async (req, res) => {
     const connection = await pool.getConnection();
     try {
-        const { user_id, userId, study_duration } = req.body;
+        const { user_id, userId, study_duration, clientDate } = req.body;
         const uId = user_id || userId;
         if (!uId) return res.status(400).json({ success: false, error: 'User ID is required' });
 
         const studyTimeToAdd = parseInt(study_duration, 10) || 0;
 
+        // Use client-provided date if available, otherwise fallback to DB date
+        const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
+
         await connection.beginTransaction();
 
-        // 1. Update user aggregate stats - Atomically check for date change using DB time
+        // 1. Update user aggregate stats
         await connection.query(`
             UPDATE users
             SET
-                SessionsToday = IF(DATE(LastStudyDate) = DATE(NOW()), IFNULL(SessionsToday, 0) + 1, 1),
-                TotalStudyTimeToday = IF(DATE(LastStudyDate) = DATE(NOW()), IFNULL(TotalStudyTimeToday, 0) + ?, ?),
+                SessionsToday = IF(DATE(LastStudyDate) = ${dateToCompare}, IFNULL(SessionsToday, 0) + 1, 1),
+                TotalStudyTimeToday = IF(DATE(LastStudyDate) = ${dateToCompare}, IFNULL(TotalStudyTimeToday, 0) + ?, ?),
                 LastStudyDate = NOW()
             WHERE id = ?
         `, [studyTimeToAdd, studyTimeToAdd, uId]);
 
-        // 2. Insert into breaks_history as "Focus Time" - INCLUDE ALL COLUMNS to avoid NOT NULL constraints
+        // 2. Insert into breaks_history as "Focus Time"
         await connection.query(`
             INSERT INTO breaks_history (user_id, break_type, category, duration_taken, fatigue_before, stress_before, rating, session_number, createdAt)
             VALUES (?, 'Study Session', 'Focus Time', ?, 1, 1, 5, 0, NOW())
@@ -106,9 +109,13 @@ router.post('/log-study', async (req, res) => {
 router.get('/stats', async (req, res) => {
     try {
         const userId = req.query.user_id || req.query.userId;
+        const clientDate = req.query.date; // Date from client: 'YYYY-MM-DD'
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
         const uId = parseInt(userId);
 
+        const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
+
+        // Get everything in one go: Overall stats AND Today's stats from history
         const [statsRows] = await pool.query(`
             SELECT
                 SUM(CASE WHEN category != 'Focus Time' THEN 1 ELSE 0 END) as totalBreaks,
@@ -117,7 +124,11 @@ router.get('/stats', async (req, res) => {
                 SUM(CASE WHEN category LIKE '%PHYSICAL%' OR category LIKE '%MOVE%' THEN 1 ELSE 0 END) as countPhysical,
                 SUM(CASE WHEN category LIKE '%MIND%' THEN 1 ELSE 0 END) as countMind,
                 SUM(CASE WHEN category LIKE '%NUTRITION%' THEN 1 ELSE 0 END) as countNutrition,
-                SUM(CASE WHEN category LIKE '%REST%' THEN 1 ELSE 0 END) as countRest
+                SUM(CASE WHEN category LIKE '%REST%' THEN 1 ELSE 0 END) as countRest,
+
+                /* Calculate Today's stats directly from history for 100% accuracy */
+                SUM(CASE WHEN category = 'Focus Time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as sessionsToday,
+                SUM(CASE WHEN category = 'Focus Time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as studyTimeToday
             FROM breaks_history
             WHERE user_id = ?
         `, [uId]);
@@ -128,14 +139,8 @@ router.get('/stats', async (req, res) => {
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        // Select stats and check if they are from "Today" using database timezone equality
         const [userRows] = await pool.query(`
-            SELECT
-                IF(DATE(LastStudyDate) = DATE(NOW()), SessionsToday, 0) as SessionsToday,
-                IF(DATE(LastStudyDate) = DATE(NOW()), TotalStudyTimeToday, 0) as TotalStudyTimeToday,
-                DayStreak,
-                pomodoro_duration,
-                sessions_per_cycle
+            SELECT DayStreak, pomodoro_duration, sessions_per_cycle
             FROM users
             WHERE id = ?
         `, [uId]);
@@ -150,8 +155,8 @@ router.get('/stats', async (req, res) => {
             avgScore: parseFloat(data.avgScore) || 0,
             bestScore: parseInt(data.bestScore) || 0,
             topCategory: topCat.category,
-            SessionsToday: parseInt(user.SessionsToday || 0),
-            TotalStudyTimeToday: parseInt(user.TotalStudyTimeToday || 0),
+            SessionsToday: parseInt(data.sessionsToday) || 0,
+            TotalStudyTimeToday: parseInt(data.studyTimeToday) || 0,
             DayStreak: parseInt(user.DayStreak || 0),
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,

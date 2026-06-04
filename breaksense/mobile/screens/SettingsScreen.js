@@ -11,12 +11,14 @@ import { API_BASE_URL } from '../Config';
 import { useFonts, Michroma_400Regular } from '@expo-google-fonts/michroma';
 import { Syne_800ExtraBold } from '@expo-google-fonts/syne';
 import { useTheme } from '../context/ThemeContext';
+import { useTimer } from '../context/TimerContext';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function SettingsScreen({ navigation }) {
   const { user, setUser } = useUser();
   const { theme, setTheme, colors } = useTheme();
+  const { clearTimerState } = useTimer();
 
   const panY = useRef(new Animated.Value(0)).current;
 
@@ -172,6 +174,7 @@ export default function SettingsScreen({ navigation }) {
       console.log("Server response:", response.data);
 
       if (response.data.success) {
+        await clearTimerState(); // Reset local timer session to 1
         await AsyncStorage.clear();
         setUser(null);
         if (Platform.OS === 'web') {

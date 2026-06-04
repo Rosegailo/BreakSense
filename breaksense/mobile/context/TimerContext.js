@@ -276,6 +276,17 @@ export const TimerProvider = ({ children }) => {
     setTimeLeft(sessionDuration * 60);
   };
 
+  const clearTimerState = async () => {
+    setIsRunning(false);
+    setCurrentSession(1);
+    setTimeLeft(sessionDuration * 60);
+    setTimerComplete(false);
+    if (Platform.OS !== 'web') {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await stopRingtone();
+    }
+  };
+
   const updateSessionDuration = (dur) => {
     setSessionDuration(dur);
     if (!isRunning) {
@@ -314,7 +325,8 @@ export const TimerProvider = ({ children }) => {
       startTimer, pauseTimer, stopTimer, resetTimer,
       timerComplete, setTimerComplete,
       playRingtone, stopRingtone,
-      advanceSession, reloadSettings, timeLeft
+      advanceSession, reloadSettings, timeLeft,
+      clearTimerState
     }}>
       {children}
     </TimerContext.Provider>

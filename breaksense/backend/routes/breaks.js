@@ -109,15 +109,12 @@ router.post('/log-study', async (req, res) => {
 router.get('/stats', async (req, res) => {
     try {
         const userId = req.query.user_id || req.query.userId;
-        const clientDate = req.query.date; // Expecting 'YYYY-MM-DD'
+        const clientDate = req.query.date;
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-        // IMPORTANT: Use the raw userId string to match the working /history route
-        const uId = userId;
+        const uId = parseInt(userId);
         const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
 
-        // Calculate stats directly from history for 100% sync with the Logs screen
-        // Use LOWER() for case-insensitive comparison
         const [statsRows] = await pool.query(`
             SELECT
                 SUM(CASE WHEN LOWER(category) != 'focus time' THEN 1 ELSE 0 END) as totalBreaks,
@@ -128,9 +125,8 @@ router.get('/stats', async (req, res) => {
                 SUM(CASE WHEN LOWER(category) LIKE '%nutrition%' THEN 1 ELSE 0 END) as countNutrition,
                 SUM(CASE WHEN LOWER(category) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest,
 
-                /* Real-time sync for Today's stats */
-                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as sessionsToday,
-                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as studyTimeToday
+                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as SessionsToday,
+                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as TotalStudyTimeToday
             FROM breaks_history
             WHERE user_id = ?
         `, [uId]);
@@ -157,8 +153,8 @@ router.get('/stats', async (req, res) => {
             avgScore: parseFloat(data.avgScore) || 0,
             bestScore: parseInt(data.bestScore) || 0,
             topCategory: topCat.category,
-            SessionsToday: parseInt(data.sessionsToday) || 0,
-            TotalStudyTimeToday: parseInt(data.studyTimeToday) || 0,
+            SessionsToday: parseInt(data.SessionsToday) || 0,
+            TotalStudyTimeToday: parseInt(data.TotalStudyTimeToday) || 0,
             DayStreak: parseInt(user.DayStreak || 0),
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,

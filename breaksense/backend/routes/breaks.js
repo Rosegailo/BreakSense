@@ -183,11 +183,15 @@ router.post('/recommend', async (req, res) => {
         const workHours = (parseInt(time) || 30) / 60;
 
         const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+
+        // Added a 3-second timeout to prevent the "Analyzing mood vector" screen from hanging
         const mlResponse = await axios.post(`${ML_SERVICE_URL}/predict`, {
             mood, stress: stressLevel, work_duration: workHours
-        });
+        }, { timeout: 3000 });
+
         res.json(mlResponse.data);
     } catch (error) {
+        console.log("ML Service Timeout or Error - Using fallback recommendation");
         res.json({ break_type: 'eye_rest', duration_minutes: 5, is_fallback: true });
     }
 });

@@ -85,11 +85,13 @@ export default function HomeScreen() {
     try {
       if (!isRefreshing) setLoading(true);
 
-      let storedUserId = user?.id || await AsyncStorage.getItem('currentUserId');
-      if (!storedUserId) {
+      // Force use of 'currentUserId' from AsyncStorage to match the working Logs screen
+      const rawId = await AsyncStorage.getItem('currentUserId');
+      if (!rawId) {
         setLoading(false);
         return;
       }
+      const storedUserId = rawId.trim();
 
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

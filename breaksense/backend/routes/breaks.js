@@ -110,10 +110,13 @@ router.get('/stats', async (req, res) => {
         const clientDate = (req.query.date || '').trim();
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-        const uId = userId;
+        // Convert to integer for 100% reliable matching in SQL
+        const uId = parseInt(userId);
+        if (isNaN(uId)) return res.status(400).json({ error: 'Invalid User ID' });
+
         const dateToCompare = clientDate || new Date().toISOString().split('T')[0];
 
-        // 1. Get History Stats (Total Breaks, Categories, Scores)
+        // 1. Get History Stats (Calculating EVERYTHING directly from history for maximum reliability)
         const [statsRows] = await pool.query(`
             SELECT
                 COUNT(CASE WHEN LOWER(TRIM(category)) != 'focus time' THEN 1 END) as totalBreaks,
@@ -124,9 +127,8 @@ router.get('/stats', async (req, res) => {
                 COUNT(CASE WHEN LOWER(category) LIKE '%nutrition%' THEN 1 END) as countNutrition,
                 COUNT(CASE WHEN LOWER(category) LIKE '%rest%' THEN 1 END) as countRest,
 
-                /* Calculate Today's stats directly from history as a source of truth */
-                COUNT(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN 1 END) as SessionsHistoryToday,
-                IFNULL(SUM(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN duration_taken ELSE 0 END), 0) as StudyTimeHistoryToday
+                COUNT(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN 1 END) as SessionsToday,
+                IFNULL(SUM(CASE WHEN LOWER(TRIM(category)) = 'focus time' AND DATE(createdAt) = ? THEN duration_taken ELSE 0 END), 0) as TotalStudyTimeToday
             FROM breaks_history
             WHERE user_id = ?
         `, [dateToCompare, dateToCompare, uId]);
@@ -138,15 +140,9 @@ router.get('/stats', async (req, res) => {
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        // 3. Get User Profile and fallback stats
+        // 3. Get User Profile for DayStreak and Pomodoro settings
         const [userRows] = await pool.query(`
-            SELECT
-                SessionsToday,
-                TotalStudyTimeToday,
-                DATE_FORMAT(LastStudyDate, '%Y-%m-%d') as LastDate,
-                DayStreak,
-                pomodoro_duration,
-                sessions_per_cycle
+            SELECT DayStreak, pomodoro_duration, sessions_per_cycle
             FROM users
             WHERE id = ?
         `, [uId]);
@@ -155,18 +151,14 @@ router.get('/stats', async (req, res) => {
         const user = userRows[0] || {};
         const topCat = topCatRows[0] || { category: 'None' };
 
-        // Determine Today's stats: Use History count as primary truth for dashboard sync
-        const sessionsToday = parseInt(data.SessionsHistoryToday) || 0;
-        const studyTimeToday = parseInt(data.StudyTimeHistoryToday) || 0;
-
         res.json({
             success: true,
             totalBreaks: parseInt(data.totalBreaks) || 0,
             avgScore: parseFloat(data.avgScore) || 0,
             bestScore: parseInt(data.bestScore) || 0,
             topCategory: topCat.category || 'None',
-            SessionsToday: sessionsToday,
-            TotalStudyTimeToday: studyTimeToday,
+            SessionsToday: parseInt(data.SessionsToday) || 0,
+            TotalStudyTimeToday: parseInt(data.TotalStudyTimeToday) || 0,
             DayStreak: parseInt(user.DayStreak || 0),
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,

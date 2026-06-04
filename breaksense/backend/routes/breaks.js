@@ -73,8 +73,6 @@ router.post('/log-study', async (req, res) => {
         if (!uId) return res.status(400).json({ success: false, error: 'User ID is required' });
 
         const studyTimeToAdd = parseInt(study_duration, 10) || 0;
-
-        // Use client-provided date if available, otherwise fallback to DB date
         const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
 
         await connection.beginTransaction();
@@ -112,28 +110,29 @@ router.get('/stats', async (req, res) => {
         const clientDate = req.query.date;
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-        const uId = parseInt(userId);
+        // Use raw userId to match /history behavior
+        const uId = userId;
         const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
 
         const [statsRows] = await pool.query(`
             SELECT
-                SUM(CASE WHEN LOWER(category) != 'focus time' THEN 1 ELSE 0 END) as totalBreaks,
-                IFNULL(AVG(CASE WHEN LOWER(category) != 'focus time' THEN rating END), 0) as avgScore,
-                IFNULL(MAX(CASE WHEN LOWER(category) != 'focus time' THEN rating END), 0) as bestScore,
-                SUM(CASE WHEN LOWER(category) LIKE '%physical%' OR LOWER(category) LIKE '%move%' THEN 1 ELSE 0 END) as countPhysical,
-                SUM(CASE WHEN LOWER(category) LIKE '%mind%' THEN 1 ELSE 0 END) as countMind,
-                SUM(CASE WHEN LOWER(category) LIKE '%nutrition%' THEN 1 ELSE 0 END) as countNutrition,
-                SUM(CASE WHEN LOWER(category) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest,
+                SUM(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN 1 ELSE 0 END) as totalBreaks,
+                IFNULL(AVG(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN rating END), 0) as avgScore,
+                IFNULL(MAX(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN rating END), 0) as bestScore,
+                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%physical%' OR TRIM(LOWER(category)) LIKE '%move%' THEN 1 ELSE 0 END) as countPhysical,
+                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%mind%' THEN 1 ELSE 0 END) as countMind,
+                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%nutrition%' THEN 1 ELSE 0 END) as countNutrition,
+                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest,
 
-                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as SessionsToday,
-                SUM(CASE WHEN LOWER(category) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as TotalStudyTimeToday
+                SUM(CASE WHEN TRIM(LOWER(category)) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as SessionsToday,
+                SUM(CASE WHEN TRIM(LOWER(category)) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as TotalStudyTimeToday
             FROM breaks_history
             WHERE user_id = ?
         `, [uId]);
 
         const [topCatRows] = await pool.query(`
             SELECT category FROM breaks_history
-            WHERE user_id = ? AND LOWER(category) != 'focus time'
+            WHERE user_id = ? AND TRIM(LOWER(category)) != 'focus time'
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 

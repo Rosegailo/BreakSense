@@ -61,26 +61,22 @@ export default function HomeScreen() {
           if (cachedStats) {
             const data = JSON.parse(cachedStats);
             setStats(data);
-
-            // Check if we actually did a session today
-            if (lastSessionDate === today) {
-              setSessionsToday(data.SessionsToday || 0);
-              setTotalStudyTime(data.TotalStudyTimeToday || 0);
-            } else {
-              setSessionsToday(0);
-              setTotalStudyTime(0);
-            }
-
+            setSessionsToday(data.SessionsToday || 0);
+            setTotalStudyTime(data.TotalStudyTimeToday || 0);
             if (data.categoryCounts) setCounts(data.categoryCounts);
-            // Don't return early - allow useFocusEffect to fetch fresh data
+            setLoading(false);
+            return; // EXIT HERE so we don't reset to 0
           }
         }
 
+        // Only reset to 0 if there is no cache or it's a new day
         setSessionsToday(0);
         setTotalStudyTime(0);
         setStats({ totalBreaks: 0, avgScore: 0, bestScore: 0, topCategory: 'None' });
         setCounts({ 'Physical Movement': 0, 'Mindfulness': 0, 'Nutrition': 0, 'Rest & Recovery': 0 });
-      } catch (e) {}
+      } catch (e) {
+        console.error("Cache load error:", e);
+      }
     };
     loadCachedData();
   }, []);

@@ -24,7 +24,7 @@ export default function StudyTimerScreen({ navigation }) {
   } = useTimer();
   
   const [sessionsCount, setSessionsCount] = useState(0);
-  const [totalStudyTime, setTotalStudyTime] = useState('0m');
+  const [totalStudyTime, setTotalStudyTime] = useState(0);
   const [dayStreak, setDayStreak] = useState(0);
   
   const [notificationState, setNotificationState] = useState({
@@ -67,13 +67,16 @@ export default function StudyTimerScreen({ navigation }) {
     }
   }, [timerComplete]);
 
-  // Load settings on focus
+  // Load settings on focus - ONLY if the timer hasn't started yet
   useFocusEffect(
     useCallback(() => {
-      if (!isRunning) {
+      // Check if timer is at the very beginning (no progress made)
+      const isTimerAtStart = timeLeft === sessionDuration * 60;
+
+      if (!isRunning && isTimerAtStart) {
         reloadSettings();
       }
-    }, [])
+    }, [isRunning, timeLeft, sessionDuration]) // Added dependencies here
   );
 
   // Fetch user stats with Daily Reset logic
@@ -84,7 +87,6 @@ export default function StudyTimerScreen({ navigation }) {
           const userId = await AsyncStorage.getItem('currentUserId');
           if (!userId) return;
 
-          // --- DAILY RESET & STREAK LOGIC ---
           const now = new Date();
           const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
@@ -93,7 +95,6 @@ export default function StudyTimerScreen({ navigation }) {
           let currentStreak = parseInt(await AsyncStorage.getItem('user_streak') || '0');
 
           if (lastVisit !== today) {
-            // New Day: Force 0s locally
             setSessionsCount(0);
             setTotalStudyTime('0m');
 
@@ -107,38 +108,26 @@ export default function StudyTimerScreen({ navigation }) {
             }
 
             await AsyncStorage.setItem('last_visit_date', today);
-            await AsyncStorage.removeItem('cached_stats'); // Clear cache on reset
           }
 
-          // STREAK DISPLAY: Show "Completed Days"
-          // If we studied today, show (Streak - 1). If not, show full Streak.
           if (lastSessionDate === today) {
             setDayStreak(Math.max(0, currentStreak - 1));
           } else {
             setDayStreak(currentStreak);
           }
-          // ----------------------------------
 
           const response = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${userId}`, { timeout: 8000 });
           if (response.data) {
-            const currentSessionDate = await AsyncStorage.getItem('last_session_date');
-            const hasDoneSessionToday = (currentSessionDate === today);
-
-            if (!hasDoneSessionToday) {
-              setSessionsCount(0);
-              setTotalStudyTime('0m');
-            } else {
-              setSessionsCount(response.data.SessionsToday || 0);
-              const studyTime = response.data.TotalStudyTimeToday || 0;
-              setTotalStudyTime(`${studyTime}m`);
-            }
+            // Trust server data for today's progress
+            setSessionsCount(response.data.SessionsToday || 0);
+            setTotalStudyTime(response.data.TotalStudyTimeToday || 0);
           }
         } catch (error) {
           console.error('Failed to fetch user stats:', error);
         }
       };
       fetchStats();
-    }, [])
+    }, [isRunning]) // Added dependency
   );
 
   const handleDurationChange = (duration) => {
@@ -318,7 +307,7 @@ export default function StudyTimerScreen({ navigation }) {
               <Text style={styles.progressLabel}>SESSIONS</Text>
             </View>
             <View style={[styles.progressBox, { backgroundColor: colors.background }]}>
-              <Text style={styles.progressValue}>{totalStudyTime}</Text>
+              <Text style={styles.progressValue}>{totalStudyTime}m</Text>
               <Text style={styles.progressLabel}>STUDY TIME</Text>
             </View>
             <View style={[styles.progressBox, { backgroundColor: colors.background }]}>

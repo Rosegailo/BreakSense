@@ -44,10 +44,10 @@ export const TimerProvider = ({ children }) => {
         const savedEndTime = await AsyncStorage.getItem('timer_end_time');
         const savedIsRunning = await AsyncStorage.getItem('timer_is_running');
 
-        if (savedSessions) setTotalSessions(parseInt(savedSessions));
-        if (savedCurrent) setCurrentSession(parseInt(savedCurrent));
+        if (savedSessions) setTotalSessions(parseInt(savedSessions) || 4);
+        if (savedCurrent) setCurrentSession(parseInt(savedCurrent) || 1);
 
-        const dur = savedPomodoro ? parseInt(savedPomodoro.split(' ')[0]) : 25;
+        const dur = savedPomodoro ? (parseInt(savedPomodoro.split(' ')[0]) || 25) : 25;
         setSessionDuration(dur);
 
         if (savedIsRunning === 'true' && savedEndTime) {
@@ -64,7 +64,9 @@ export const TimerProvider = ({ children }) => {
         } else {
           setTimeLeft(dur * 60);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("Timer persistence load error:", e);
+      }
     };
     loadPersistence();
 
@@ -128,12 +130,18 @@ export const TimerProvider = ({ children }) => {
 
   const saveStudyLog = async (duration) => {
     try {
-      const userId = await AsyncStorage.getItem('currentUserId');
+      const storedUserId = await AsyncStorage.getItem('currentUserId');
+      const userJson = await AsyncStorage.getItem('user');
+      const userId = storedUserId || (userJson ? JSON.parse(userJson).id : null);
+
       if (userId) {
+        console.log(`[Timer] Logging study session: ${duration}m for user ${userId}`);
         await axios.post(`${API_BASE_URL}/breaks/log-study`, {
           user_id: userId,
           study_duration: duration
         });
+      } else {
+        console.warn("[Timer] Cannot log study session: No User ID found.");
       }
     } catch (e) {
       console.error("Failed to save study session to DB:", e.message);
@@ -188,7 +196,15 @@ export const TimerProvider = ({ children }) => {
       await AsyncStorage.setItem('last_session_date', today); // Mark that we started today
     }
 
-    const endTime = Date.now() + timeLeft * 1000;
+    // Safety: Ensure timeLeft is valid before starting.
+    // If user starts with 0 time, reset it to full duration.
+    let secondsToWait = timeLeft;
+    if (isNaN(secondsToWait) || secondsToWait <= 0) {
+      secondsToWait = sessionDuration * 60;
+      setTimeLeft(secondsToWait);
+    }
+
+    const endTime = Date.now() + (secondsToWait * 1000);
     await AsyncStorage.setItem('timer_end_time', endTime.toString());
     await AsyncStorage.setItem('timer_is_running', 'true');
 
@@ -197,14 +213,19 @@ export const TimerProvider = ({ children }) => {
       const studyAlerts = await AsyncStorage.getItem('settings_studyAlerts');
       if (studyAlerts !== 'false') { // Default to true if not set
         await Notifications.cancelAllScheduledNotificationsAsync();
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Study Session Complete!",
-            body: "Time for a break and a quick check-in.",
-            sound: true,
-          },
-          trigger: { seconds: timeLeft },
-        });
+
+        // Only schedule if there's actually a significant amount of time left.
+        // This prevents immediate notifications.
+        if (secondsToWait > 1) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Study Session Complete!",
+              body: "Time for a break and a quick check-in.",
+              sound: true,
+            },
+            trigger: { seconds: secondsToWait },
+          });
+        }
       }
     }
 
@@ -271,7 +292,11 @@ export const TimerProvider = ({ children }) => {
       if (savedPomodoro) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
         setSessionDuration(dur);
-        if (!isRunning) {
+
+        // ONLY reset the clock if it's NOT running and
+        // hasn't started yet (still at the original full duration)
+        const isTimerUntouched = timeLeft === sessionDuration * 60;
+        if (!isRunning && isTimerUntouched) {
           setTimeLeft(dur * 60);
         }
       }

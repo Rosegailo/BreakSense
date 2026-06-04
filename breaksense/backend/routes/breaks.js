@@ -66,24 +66,40 @@ router.post('/save', async (req, res) => {
 });
 
 router.post('/log-study', async (req, res) => {
+    const connection = await pool.getConnection();
     try {
         const { user_id, userId, study_duration } = req.body;
         const uId = user_id || userId;
         if (!uId) return res.status(400).json({ success: false, error: 'User ID is required' });
 
         const studyTimeToAdd = parseInt(study_duration, 10) || 0;
-        await pool.query(`
+
+        await connection.beginTransaction();
+
+        // 1. Update user aggregate stats - Atomically check for date change using DB time
+        await connection.query(`
             UPDATE users
-            SET SessionsToday = IFNULL(SessionsToday, 0) + 1,
-                TotalStudyTimeToday = IFNULL(TotalStudyTimeToday, 0) + ?,
+            SET
+                SessionsToday = IF(DATE(LastStudyDate) = DATE(NOW()), IFNULL(SessionsToday, 0) + 1, 1),
+                TotalStudyTimeToday = IF(DATE(LastStudyDate) = DATE(NOW()), IFNULL(TotalStudyTimeToday, 0) + ?, ?),
                 LastStudyDate = NOW()
             WHERE id = ?
-        `, [studyTimeToAdd, uId]);
+        `, [studyTimeToAdd, studyTimeToAdd, uId]);
 
+        // 2. Insert into breaks_history as "Focus Time" - INCLUDE ALL COLUMNS to avoid NOT NULL constraints
+        await connection.query(`
+            INSERT INTO breaks_history (user_id, break_type, category, duration_taken, fatigue_before, stress_before, rating, session_number, createdAt)
+            VALUES (?, 'Study Session', 'Focus Time', ?, 1, 1, 5, 0, NOW())
+        `, [uId, studyTimeToAdd]);
+
+        await connection.commit();
         res.status(200).json({ success: true, message: 'Study session logged successfully' });
     } catch (error) {
-        console.error("Error logging study:", error);
+        if (connection) await connection.rollback();
+        console.error("CRITICAL LOG-STUDY ERROR:", error);
         res.status(500).json({ success: false, error: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 });
 
@@ -112,16 +128,27 @@ router.get('/stats', async (req, res) => {
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        const [userRows] = await pool.query('SELECT SessionsToday, TotalStudyTimeToday, DayStreak, pomodoro_duration, sessions_per_cycle FROM users WHERE id = ?', [uId]);
+        // Select stats and check if they are from "Today" using database timezone equality
+        const [userRows] = await pool.query(`
+            SELECT
+                IF(DATE(LastStudyDate) = DATE(NOW()), SessionsToday, 0) as SessionsToday,
+                IF(DATE(LastStudyDate) = DATE(NOW()), TotalStudyTimeToday, 0) as TotalStudyTimeToday,
+                DayStreak,
+                pomodoro_duration,
+                sessions_per_cycle
+            FROM users
+            WHERE id = ?
+        `, [uId]);
 
         const data = statsRows[0] || {};
         const user = userRows[0] || {};
         const topCat = topCatRows[0] || { category: 'None' };
 
         res.json({
-            totalBreaks: parseInt(data.totalBreaks),
-            avgScore: parseFloat(data.avgScore),
-            bestScore: parseInt(data.bestScore),
+            success: true,
+            totalBreaks: parseInt(data.totalBreaks) || 0,
+            avgScore: parseFloat(data.avgScore) || 0,
+            bestScore: parseInt(data.bestScore) || 0,
             topCategory: topCat.category,
             SessionsToday: parseInt(user.SessionsToday || 0),
             TotalStudyTimeToday: parseInt(user.TotalStudyTimeToday || 0),
@@ -129,15 +156,15 @@ router.get('/stats', async (req, res) => {
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,
             categoryCounts: {
-                'Physical Movement': parseInt(data.countPhysical),
-                'Mindfulness': parseInt(data.countMind),
-                'Nutrition': parseInt(data.countNutrition),
-                'Rest & Recovery': parseInt(data.countRest)
+                'Physical Movement': parseInt(data.countPhysical) || 0,
+                'Mindfulness': parseInt(data.countMind) || 0,
+                'Nutrition': parseInt(data.countNutrition) || 0,
+                'Rest & Recovery': parseInt(data.countRest) || 0
             }
         });
     } catch (err) {
         console.error("Stats Error:", err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

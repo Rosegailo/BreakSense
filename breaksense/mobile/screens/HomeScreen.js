@@ -72,8 +72,7 @@ export default function HomeScreen() {
             }
 
             if (data.categoryCounts) setCounts(data.categoryCounts);
-            setLoading(false);
-            return;
+            // Don't return early - allow useFocusEffect to fetch fresh data
           }
         }
 
@@ -132,25 +131,21 @@ export default function HomeScreen() {
       setNudgeMessage(nudgeSetting === 'true' ? "Ready to start another session? Focus deep!" : null);
 
       const urlSuffix = `?user_id=${storedUserId}`;
-      const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 8000 });
+      console.log(`[Home] Fetching stats for user: ${storedUserId} at ${API_BASE_URL}/breaks/stats${urlSuffix}`);
+      const res = await axios.get(`${API_BASE_URL}/breaks/stats${urlSuffix}`, { timeout: 10000 });
 
       if (res.data) {
-        const currentSessionDate = await AsyncStorage.getItem('last_session_date');
-        const hasDoneSessionToday = (currentSessionDate === today);
-
+        console.log("[Home] Stats received:", res.data);
         setStats(res.data);
 
-        // Strictly enforce 0 if no session was logged today in this app
-        if (!hasDoneSessionToday) {
-          setSessionsToday(0);
-          setTotalStudyTime(0);
-        } else {
-          setSessionsToday(res.data.SessionsToday || 0);
-          setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
-        }
+        // Trust server data for today's progress
+        setSessionsToday(res.data.SessionsToday || 0);
+        setTotalStudyTime(res.data.TotalStudyTimeToday || 0);
 
         if (res.data.categoryCounts) setCounts(res.data.categoryCounts);
         await AsyncStorage.setItem('cached_stats', JSON.stringify(res.data));
+      } else {
+        console.warn("[Home] No data in response");
       }
     } catch (e) {
       console.error("Home stats fetch failed:", e.message);
@@ -171,7 +166,7 @@ export default function HomeScreen() {
     fetchData(true);
   }, [user]);
 
-  if (loading && !stats.totalBreaks && sessionsToday === 0) {
+  if (loading && !refreshing && !stats.totalBreaks && sessionsToday === 0) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.accent} />
@@ -189,7 +184,7 @@ export default function HomeScreen() {
       >
         <View style={styles.titleContainer}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold', fontSize: 20 }]}>
                 Your Break <Text style={{ color: colors.accent }}>Analytics</Text>
               </Text>
@@ -234,7 +229,7 @@ export default function HomeScreen() {
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={styles.statLabel}>Top Category</Text>
-              <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma', fontSize: 13 }]}>
+              <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma', fontSize: 13 }]} numberOfLines={1}>
                 {(!stats.topCategory || stats.topCategory === 'None') ? 'None' : stats.topCategory}
               </Text>
             </View>
@@ -243,7 +238,7 @@ export default function HomeScreen() {
           {/* Row 3 */}
           <View style={styles.row}>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <Text style={styles.statLabel}>Study Sessions Today</Text>
+              <Text style={styles.statLabel}>Sessions Today</Text>
               <Text style={[styles.statValue, { color: '#f97316', fontFamily: 'Michroma' }]}>
                 {sessionsToday}
               </Text>
@@ -251,7 +246,7 @@ export default function HomeScreen() {
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={styles.statLabel}>Total Study Time</Text>
               <Text style={[styles.statValue, { color: '#ec4899', fontFamily: 'Michroma' }]}>
-                {totalStudyTime} m
+                {totalStudyTime}m
               </Text>
             </View>
           </View>

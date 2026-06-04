@@ -140,9 +140,9 @@ router.get('/stats', async (req, res) => {
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
-        // 3. Get User Profile for DayStreak and Pomodoro settings
+        // 3. Get User Profile (Removed non-existent settings columns to fix 500 error)
         const [userRows] = await pool.query(`
-            SELECT DayStreak, pomodoro_duration, sessions_per_cycle
+            SELECT DayStreak
             FROM users
             WHERE id = ?
         `, [uId]);
@@ -160,8 +160,8 @@ router.get('/stats', async (req, res) => {
             SessionsToday: parseInt(data.SessionsToday) || 0,
             TotalStudyTimeToday: parseInt(data.TotalStudyTimeToday) || 0,
             DayStreak: parseInt(user.DayStreak || 0),
-            pomodoro_duration: user.pomodoro_duration || '25 min',
-            sessions_per_cycle: user.sessions_per_cycle || 4,
+            pomodoro_duration: '25 min',
+            sessions_per_cycle: 4,
             categoryCounts: {
                 'Physical Movement': parseInt(data.countPhysical) || 0,
                 'Mindfulness': parseInt(data.countMind) || 0,

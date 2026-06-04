@@ -251,13 +251,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {nudgeMessage && (
-          <View style={[styles.notificationBox, { backgroundColor: colors.card, borderColor: colors.accent }]}>
-             <Ionicons name="notifications" size={16} color={colors.accent} style={{marginRight: 10}} />
-             <Text style={[styles.notificationText, { color: colors.textPrimary }]}>{nudgeMessage}</Text>
-          </View>
-        )}
-
         <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardHeader, { color: '#64748b' }]}>CATEGORY DISTRIBUTION</Text>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />

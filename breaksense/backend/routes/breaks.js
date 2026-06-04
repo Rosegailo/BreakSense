@@ -110,10 +110,11 @@ router.get('/stats', async (req, res) => {
         const clientDate = req.query.date;
         if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-        // Use raw userId to match /history behavior
+        // Use the exact same ID handling as the working /history route
         const uId = userId;
         const dateToCompare = clientDate ? `'${clientDate}'` : 'DATE(NOW())';
 
+        // 1. Get History Stats (Total Breaks, Categories, Scores)
         const [statsRows] = await pool.query(`
             SELECT
                 SUM(CASE WHEN TRIM(LOWER(category)) != 'focus time' THEN 1 ELSE 0 END) as totalBreaks,
@@ -122,22 +123,26 @@ router.get('/stats', async (req, res) => {
                 SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%physical%' OR TRIM(LOWER(category)) LIKE '%move%' THEN 1 ELSE 0 END) as countPhysical,
                 SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%mind%' THEN 1 ELSE 0 END) as countMind,
                 SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%nutrition%' THEN 1 ELSE 0 END) as countNutrition,
-                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest,
-
-                SUM(CASE WHEN TRIM(LOWER(category)) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN 1 ELSE 0 END) as SessionsToday,
-                SUM(CASE WHEN TRIM(LOWER(category)) = 'focus time' AND DATE(createdAt) = ${dateToCompare} THEN duration_taken ELSE 0 END) as TotalStudyTimeToday
+                SUM(CASE WHEN TRIM(LOWER(category)) LIKE '%rest%' THEN 1 ELSE 0 END) as countRest
             FROM breaks_history
             WHERE user_id = ?
         `, [uId]);
 
+        // 2. Get Top Category
         const [topCatRows] = await pool.query(`
             SELECT category FROM breaks_history
             WHERE user_id = ? AND TRIM(LOWER(category)) != 'focus time'
             GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1
         `, [uId]);
 
+        // 3. Get User Profile and "Today" stats directly from the columns you provided
         const [userRows] = await pool.query(`
-            SELECT DayStreak, pomodoro_duration, sessions_per_cycle
+            SELECT
+                IF(DATE(LastStudyDate) = ${dateToCompare}, SessionsToday, 0) as SessionsToday,
+                IF(DATE(LastStudyDate) = ${dateToCompare}, TotalStudyTimeToday, 0) as TotalStudyTimeToday,
+                DayStreak,
+                pomodoro_duration,
+                sessions_per_cycle
             FROM users
             WHERE id = ?
         `, [uId]);
@@ -152,8 +157,8 @@ router.get('/stats', async (req, res) => {
             avgScore: parseFloat(data.avgScore) || 0,
             bestScore: parseInt(data.bestScore) || 0,
             topCategory: topCat.category,
-            SessionsToday: parseInt(data.SessionsToday) || 0,
-            TotalStudyTimeToday: parseInt(data.TotalStudyTimeToday) || 0,
+            SessionsToday: parseInt(user.SessionsToday) || 0,
+            TotalStudyTimeToday: parseInt(user.TotalStudyTimeToday) || 0,
             DayStreak: parseInt(user.DayStreak || 0),
             pomodoro_duration: user.pomodoro_duration || '25 min',
             sessions_per_cycle: user.sessions_per_cycle || 4,
@@ -165,7 +170,7 @@ router.get('/stats', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error("Stats Error:", err);
+        console.error("Sync Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

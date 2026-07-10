@@ -216,21 +216,27 @@ export const TimerProvider = ({ children }) => {
       const studyAlerts = await AsyncStorage.getItem('settings_studyAlerts');
       if (studyAlerts !== 'false') {
         try {
+          // 1. Cancel existing ones first
           await Notifications.cancelAllScheduledNotificationsAsync();
 
-          // Only schedule if time is > 10 seconds to avoid instant triggers
+          // 2. Only schedule if time is significant (> 10 seconds)
           if (secondsToWait > 10) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: "Study Session Complete!",
-                body: "Time for a break and a quick check-in.",
-                sound: true,
-              },
-              trigger: {
-                date: triggerDate, // Using date instead of relative seconds
-              },
-            });
-            console.log(`[Timer] Scheduled notification for: ${triggerDate.toLocaleTimeString()}`);
+            // We use a small timeout to ensure the OS has time to process the cancellation
+            setTimeout(async () => {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: "Study Session Complete!",
+                  body: "Time for a break and a quick check-in.",
+                  sound: true,
+                  priority: Notifications.AndroidPriority.HIGH,
+                },
+                trigger: {
+                  seconds: secondsToWait, // Using seconds is more reliable for countdowns
+                  repeats: false
+                },
+              });
+              console.log(`[Timer] Notification scheduled for ${secondsToWait} seconds from now.`);
+            }, 500);
           }
         } catch (error) {
           console.error("Failed to schedule notification:", error);

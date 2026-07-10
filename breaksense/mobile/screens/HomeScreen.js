@@ -184,7 +184,7 @@ export default function HomeScreen() {
         <View style={styles.titleContainer}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold', fontSize: 20 }]}>
+              <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold', fontSize: 20 }]} numberOfLines={1} adjustsFontSizeToFit>
                 Your Break <Text style={{ color: colors.accent }}>Analytics</Text>
               </Text>
               <Text style={[styles.subtitle, { fontFamily: 'Outfit', color: colors.textSecondary, marginTop: 5 }]}>
@@ -228,7 +228,7 @@ export default function HomeScreen() {
             </View>
             <View style={[styles.statCard, { backgroundColor: colors.card }]}>
               <Text style={styles.statLabel}>Top Category</Text>
-              <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma', fontSize: 13 }]} numberOfLines={1}>
+              <Text style={[styles.statValue, { color: '#fbbf24', fontFamily: 'Michroma', fontSize: 14 }]} numberOfLines={2}>
                 {(!stats.topCategory || stats.topCategory === 'None') ? 'None' : stats.topCategory}
               </Text>
             </View>

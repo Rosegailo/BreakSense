@@ -67,17 +67,10 @@ export default function StudyTimerScreen({ navigation }) {
     }
   }, [timerComplete]);
 
-  // Load settings on focus - ONLY if the timer hasn't started yet
-  useFocusEffect(
-    useCallback(() => {
-      // Check if timer is at the very beginning (no progress made)
-      const isTimerAtStart = timeLeft === sessionDuration * 60;
-
-      if (!isRunning && isTimerAtStart) {
-        reloadSettings();
-      }
-    }, [isRunning, timeLeft, sessionDuration]) // Added dependencies here
-  );
+  // Load settings only once when the screen is first visited
+  useEffect(() => {
+    reloadSettings();
+  }, []);
 
   // Fetch user stats with Daily Reset logic
   useFocusEffect(

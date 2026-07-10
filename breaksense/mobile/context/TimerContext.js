@@ -208,23 +208,32 @@ export const TimerProvider = ({ children }) => {
     await AsyncStorage.setItem('timer_end_time', endTime.toString());
     await AsyncStorage.setItem('timer_is_running', 'true');
 
+    // Use an absolute timestamp for the trigger (more reliable on Android)
+    const triggerDate = new Date(Date.now() + (secondsToWait * 1000));
+
     // Schedule Notification (Mobile only)
     if (Platform.OS !== 'web') {
       const studyAlerts = await AsyncStorage.getItem('settings_studyAlerts');
-      if (studyAlerts !== 'false') { // Default to true if not set
-        await Notifications.cancelAllScheduledNotificationsAsync();
+      if (studyAlerts !== 'false') {
+        try {
+          await Notifications.cancelAllScheduledNotificationsAsync();
 
-        // Only schedule if there's actually a significant amount of time left.
-        // This prevents immediate notifications.
-        if (secondsToWait > 1) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: "Study Session Complete!",
-              body: "Time for a break and a quick check-in.",
-              sound: true,
-            },
-            trigger: { seconds: secondsToWait },
-          });
+          // Only schedule if time is > 10 seconds to avoid instant triggers
+          if (secondsToWait > 10) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: "Study Session Complete!",
+                body: "Time for a break and a quick check-in.",
+                sound: true,
+              },
+              trigger: {
+                date: triggerDate, // Using date instead of relative seconds
+              },
+            });
+            console.log(`[Timer] Scheduled notification for: ${triggerDate.toLocaleTimeString()}`);
+          }
+        } catch (error) {
+          console.error("Failed to schedule notification:", error);
         }
       }
     }
@@ -294,7 +303,7 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
-  const reloadSettings = async () => {
+  const reloadSettings = async (force = false) => {
     try {
       const savedSessions = await AsyncStorage.getItem('settings_sessions');
       const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
@@ -302,12 +311,11 @@ export const TimerProvider = ({ children }) => {
       if (savedSessions) setTotalSessions(parseInt(savedSessions));
       if (savedPomodoro) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
-        setSessionDuration(dur);
 
-        // ONLY reset the clock if it's NOT running and
-        // hasn't started yet (still at the original full duration)
-        const isTimerUntouched = timeLeft === sessionDuration * 60;
-        if (!isRunning && isTimerUntouched) {
+        // ONLY update duration if we are forced (screen mount)
+        // OR if the timer is not running and hasn't been changed manually yet
+        if (force || (!isRunning && timeLeft === sessionDuration * 60)) {
+          setSessionDuration(dur);
           setTimeLeft(dur * 60);
         }
       }

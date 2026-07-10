@@ -17,7 +17,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function SettingsScreen({ navigation }) {
   const { user, setUser } = useUser();
-  const { theme, setTheme, colors } = useTheme();
+  const { theme, setTheme, accentName, setAccent, colors } = useTheme();
   const { clearTimerState } = useTimer();
 
   const panY = useRef(new Animated.Value(0)).current;
@@ -353,23 +353,47 @@ export default function SettingsScreen({ navigation }) {
           <Text style={[styles.sectionHeader, { color: '#3b82f6' }]}>APPEARANCE</Text>
           <View style={styles.itemRow}>
             <View>
-              <Text style={[styles.itemLabel, { color: colors.textPrimary }]}>Accent Colour</Text>
-              <Text style={styles.itemSub}>Main highlight colour</Text>
+              <Text style={[styles.itemLabel, { color: colors.textPrimary }]}>Theme Mode</Text>
+              <Text style={styles.itemSub}>Switch between dark and light</Text>
             </View>
             <View style={styles.themeSelector}>
               <View style={styles.themeOption}>
                 <TouchableOpacity style={[styles.radioCircle, { backgroundColor: colors.card }, theme === 'Dark' && { backgroundColor: colors.accent }]} onPress={() => setTheme('Dark')}>
-                  {theme === 'Dark' && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  {theme === 'Dark' && <Ionicons name="checkmark" size={12} color="#000" />}
                 </TouchableOpacity>
                 <Text style={styles.themeLabel}>Dark</Text>
               </View>
               <View style={styles.themeOption}>
                 <TouchableOpacity style={[styles.radioCircle, { backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border }, theme === 'Light' && { backgroundColor: colors.accent, borderColor: colors.accent }]} onPress={() => setTheme('Light')}>
-                  {theme === 'Light' && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  {theme === 'Light' && <Ionicons name="checkmark" size={12} color="#000" />}
                 </TouchableOpacity>
                 <Text style={styles.themeLabel}>Light</Text>
               </View>
             </View>
+          </View>
+
+          <View style={[styles.itemRow, { marginTop: 25 }]}>
+            <View>
+              <Text style={[styles.itemLabel, { color: colors.textPrimary }]}>Accent Colour</Text>
+              <Text style={styles.itemSub}>Personalize the app highlights</Text>
+            </View>
+          </View>
+
+          <View style={styles.accentContainer}>
+            {['Green', 'Blue', 'Purple', 'Orange', 'Pink'].map((name) => {
+              const colorMap = { Green: '#39ef8d', Blue: '#3b82f6', Purple: '#a855f7', Orange: '#f97316', Pink: '#ec4899' };
+              return (
+                <TouchableOpacity
+                  key={name}
+                  style={[
+                    styles.accentCircle,
+                    { backgroundColor: colorMap[name] },
+                    accentName === name && { borderWidth: 3, borderColor: colors.textPrimary }
+                  ]}
+                  onPress={() => setAccent(name)}
+                />
+              );
+            })}
           </View>
         </View>
 
@@ -464,6 +488,8 @@ const styles = StyleSheet.create({
   radioCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#2d323c', justifyContent: 'center', alignItems: 'center' },
   radioActive: { backgroundColor: '#39ef8d' },
   themeLabel: { color: '#64748b', fontSize: 11 },
+  accentContainer: { flexDirection: 'row', gap: 15, marginTop: 15 },
+  accentCircle: { width: 35, height: 35, borderRadius: 17.5 },
   resetBtn: { backgroundColor: '#3b1620', borderWidth: 1, borderColor: '#ef4444', borderRadius: 12, paddingVertical: 18, alignItems: 'center', marginTop: 20 },
   resetBtnText: { color: '#ef4444', fontWeight: 'bold', fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 30 },

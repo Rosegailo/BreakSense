@@ -28,10 +28,19 @@ export default function LoginScreen({ navigation, onLogin }) {
       }, { timeout: 10000 });
 
       if (response.data && response.data.success) {
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-        await AsyncStorage.setItem('currentUserId', response.data.user.id.toString());
+        const { user } = response.data;
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        await AsyncStorage.setItem('currentUserId', user.id.toString());
 
-        onLogin(response.data.user); 
+        // Sync settings from backend to local storage
+        if (user.pomodoro_duration) {
+          await AsyncStorage.setItem('settings_pomodoro', user.pomodoro_duration);
+        }
+        if (user.sessions_per_cycle) {
+          await AsyncStorage.setItem('settings_sessions', user.sessions_per_cycle.toString());
+        }
+
+        onLogin(user);
       } else {
         const msg = response.data.message || 'Invalid credentials';
         Alert.alert('Login Failed', msg);

@@ -77,8 +77,8 @@ router.post('/login', async (req, res) => {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
-                pomodoro_duration: '25 min',
-                sessions_per_cycle: 4
+                pomodoro_duration: user.pomodoro_duration || '25 min',
+                sessions_per_cycle: user.sessions_per_cycle || 4
             }
         });
 
@@ -91,14 +91,17 @@ router.post('/login', async (req, res) => {
 // --- UPDATE PROFILE ---
 router.put('/update-profile', async (req, res) => {
     try {
-        const { userId, firstName, lastName } = req.body;
+        const { userId, firstName, lastName, pomodoroDuration, sessionsPerCycle } = req.body;
 
         if (!userId) return res.status(400).json({ success: false, message: "User ID is required" });
 
-        await db.collection('users').doc(userId).update({
-            first_name: firstName,
-            last_name: lastName
-        });
+        const updateData = {};
+        if (firstName) updateData.first_name = firstName;
+        if (lastName) updateData.last_name = lastName;
+        if (pomodoroDuration) updateData.pomodoro_duration = pomodoroDuration;
+        if (sessionsPerCycle) updateData.sessions_per_cycle = sessionsPerCycle;
+
+        await db.collection('users').doc(userId).update(updateData);
 
         res.json({ success: true, message: "Profile updated successfully." });
     } catch (err) {

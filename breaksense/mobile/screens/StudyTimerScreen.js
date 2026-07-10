@@ -67,10 +67,12 @@ export default function StudyTimerScreen({ navigation }) {
     }
   }, [timerComplete]);
 
-  // Load settings only once when the screen is first visited
-  useEffect(() => {
-    reloadSettings();
-  }, []);
+  // Reload settings whenever the screen is focused (to pick up changes from Settings)
+  useFocusEffect(
+    useCallback(() => {
+      reloadSettings();
+    }, [])
+  );
 
   // Fetch user stats with Daily Reset logic
   useFocusEffect(

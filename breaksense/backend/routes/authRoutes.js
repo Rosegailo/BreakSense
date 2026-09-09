@@ -1,53 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const db = require('../db');
+const User = require('../models/User');
+const Break = require('../models/Break');
 
 // --- SIGNUP ---
 router.post('/signup', async (req, res) => {
     try {
-        const { firstName, lastName, email, password } = req.body; 
+        const { firstName, lastName, email, password, role } = req.body;
 
         // Password validation
         const minLength = 8;
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        const hasUpper = /[A-Z]/.test(password);
-
-        if (password.length < minLength || !hasNumber || !hasSpecial || !hasUpper) {
-            return res.status(400).json({
-                success: false,
-                message: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character."
-            });
+        if (password.length < minLength || !/\d/.test(password) || !/[!@#$%^&*()]/.test(password) || !/[A-Z]/.test(password)) {
+            return res.status(400).json({ success: false, message: "Password too weak." });
         }
 
-        // Check if user already exists
-        const userRef = db.collection('users');
-        const existingUser = await userRef.where('email', '==', email).get();
-        if (!existingUser.empty) {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             return res.status(400).json({ success: false, message: "Email already registered" });
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user document
-        const newUserRef = await userRef.add({
+        const newUser = new User({
             first_name: firstName,
             last_name: lastName,
             email: email,
             password: hashedPassword,
-            SessionsToday: 0,
-            TotalStudyTimeToday: 0,
-            DayStreak: 0,
-            LastStudyDate: null,
-            createdAt: new Date()
+            role: role || 'student'
         });
 
-        res.json({ success: true, message: "User registered", userId: newUserRef.id });
+        await newUser.save();
+        res.json({ success: true, message: "User registered", userId: newUser._id });
     } catch (err) {
-        console.error("SIGNUP ERROR:", err.message); 
-        res.status(500).json({ success: false, message: err.message }); 
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 
@@ -55,35 +42,26 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const user = await User.findOne({ email });
 
-        const userSnapshot = await db.collection('users').where('email', '==', email).get();
-
-        if (userSnapshot.empty) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        const userDoc = userSnapshot.docs[0];
-        const user = userDoc.data();
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ success: false, message: "Incorrect password" });
-        }
+        if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect password" });
 
         res.json({ 
             success: true, 
             user: {
-                id: userDoc.id, // Return Firestore document ID as the User ID
+                id: user._id,
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
-                pomodoro_duration: user.pomodoro_duration || '25 min',
-                sessions_per_cycle: user.sessions_per_cycle || 4
+                role: user.role,
+                pomodoro_duration: user.pomodoro_duration,
+                sessions_per_cycle: user.sessions_per_cycle
             }
         });
-
     } catch (err) {
-        console.error("LOGIN ERROR:", err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 });
@@ -92,20 +70,15 @@ router.post('/login', async (req, res) => {
 router.put('/update-profile', async (req, res) => {
     try {
         const { userId, firstName, lastName, pomodoroDuration, sessionsPerCycle } = req.body;
-
-        if (!userId) return res.status(400).json({ success: false, message: "User ID is required" });
-
         const updateData = {};
         if (firstName) updateData.first_name = firstName;
         if (lastName) updateData.last_name = lastName;
         if (pomodoroDuration) updateData.pomodoro_duration = pomodoroDuration;
         if (sessionsPerCycle) updateData.sessions_per_cycle = sessionsPerCycle;
 
-        await db.collection('users').doc(userId).update(updateData);
-
+        await User.findByIdAndUpdate(userId, updateData);
         res.json({ success: true, message: "Profile updated successfully." });
     } catch (err) {
-        console.error("Profile update error:", err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -114,29 +87,26 @@ router.put('/update-profile', async (req, res) => {
 router.delete('/reset-account/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-
-        // 1. Delete all logs in breaks_history for this user
-        const batch = db.batch();
-        const historySnapshot = await db.collection('breaks_history').where('user_id', '==', userId).get();
-
-        historySnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-
-        // 2. Reset user stats
-        const userRef = db.collection('users').doc(userId);
-        batch.update(userRef, {
+        await Break.deleteMany({ user_id: userId });
+        await User.findByIdAndUpdate(userId, {
             SessionsToday: 0,
             TotalStudyTimeToday: 0,
             DayStreak: 0,
             LastStudyDate: null
         });
-
-        await batch.commit();
-        res.json({ success: true, message: "Account data cleared successfully." });
+        res.json({ success: true, message: "Account data cleared." });
     } catch (err) {
-        console.error("Reset Error:", err.message);
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// --- GET COUNSELORS ---
+router.get('/counselors', async (req, res) => {
+    try {
+        const counselors = await User.find({ role: 'counselor' }, 'first_name last_name email');
+        res.json(counselors);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

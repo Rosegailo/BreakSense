@@ -28,6 +28,7 @@ import RecommendScreen from './screens/RecommendScreen';
 import LibraryScreen from './screens/LibraryScreen';
 import StatsScreen from './screens/StatsScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ConsultationScreen from './screens/ConsultationScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -52,6 +53,7 @@ function CustomDrawerContent(props) {
     { label: 'Recommendation', subtitle: 'Your KNN break activity', route: 'Recommendation' },
     { label: 'Library', subtitle: '24 guided activities', route: 'Library' },
     { label: 'Logs', subtitle: 'Your session history', route: 'Logs' },
+    { label: 'Consultation', subtitle: 'Chat with Guidance', route: 'Consultation' },
   ];
 
   if (!user) return null;
@@ -162,6 +164,7 @@ function DrawerScreens() {
       <Drawer.Screen name="Recommendation" component={RecommendScreen} />
       <Drawer.Screen name="Library" component={LibraryScreen} />
       <Drawer.Screen name="Logs" component={StatsScreen} />
+      <Drawer.Screen name="Consultation" component={ConsultationScreen} />
     </Drawer.Navigator>
   );
 }

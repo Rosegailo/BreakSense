@@ -1,8 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const connectDB = require('./db');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();
 
 app.use(cors());
 app.use(express.json()); 
@@ -10,9 +14,11 @@ app.use(express.urlencoded({ extended: true }));
 
 const breakRoutes = require('./routes/breaks');
 const authRoutes = require('./routes/authRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 app.use('/api/breaks', breakRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.get('/health', (_, res) => {
     res.json({ 

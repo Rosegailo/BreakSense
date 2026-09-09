@@ -110,4 +110,15 @@ router.get('/counselors', async (req, res) => {
     }
 });
 
+// --- GET ALL STUDENTS (For Counselor Dashboard) ---
+router.get('/students', async (req, res) => {
+    try {
+        // Find all students and include their stats
+        const students = await User.find({ role: 'student' }, 'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak');
+        res.json(students);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;

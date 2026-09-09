@@ -46,8 +46,9 @@ export default function LoginScreen({ navigation, onLogin }) {
         Alert.alert('Login Failed', msg);
       }
     } catch (error) {
-      console.error("Login Error Detail:", error.message);
-      Alert.alert('Login Failed', 'Something went wrong. Please check your internet connection.');
+      console.error("Login Error Detail:", error.response?.data || error.message);
+      const backendMessage = error.response?.data?.message || 'Something went wrong. Please check your internet connection.';
+      Alert.alert('Login Failed', backendMessage);
     } finally {
       setIsSubmitting(false);
     }

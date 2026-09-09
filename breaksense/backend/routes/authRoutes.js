@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
         res.json({ 
             success: true, 
             user: {
-                id: user._id,
+                id: user._id.toString(), // Ensure ID is a string
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,

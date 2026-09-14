@@ -113,11 +113,49 @@ router.get('/counselors', async (req, res) => {
 // --- GET ALL STUDENTS (For Counselor Dashboard) ---
 router.get('/students', async (req, res) => {
     try {
-        // Find all students and include their stats
-        const students = await User.find({ role: 'student' }, 'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak');
+        // Find all students and include stats, sharing permissions, and access status
+        const students = await User.find(
+            { role: 'student' },
+            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus'
+        );
         res.json(students);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// --- REQUEST ANALYTICS ACCESS ---
+router.put('/request-access', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await User.findByIdAndUpdate(userId, { analyticsAccessStatus: 'pending' });
+        res.json({ success: true, message: "Request sent to student." });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// --- UPDATE PERMISSIONS ---
+router.put('/update-permissions', async (req, res) => {
+    try {
+        const { userId, dataSharingPermission, analyticsAccessStatus } = req.body;
+        let permissionExpiry = null;
+
+        if (dataSharingPermission === '7days') {
+            permissionExpiry = new Date();
+            permissionExpiry.setDate(permissionExpiry.getDate() + 7);
+        } else if (dataSharingPermission === 'session') {
+            permissionExpiry = new Date();
+            permissionExpiry.setHours(permissionExpiry.getHours() + 1);
+        }
+
+        const updateData = { dataSharingPermission, permissionExpiry };
+        if (analyticsAccessStatus) updateData.analyticsAccessStatus = analyticsAccessStatus;
+
+        await User.findByIdAndUpdate(userId, updateData);
+        res.json({ success: true, message: "Permissions updated." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 

@@ -17,6 +17,19 @@ const userSchema = new mongoose.Schema({
     pomodoro_duration: { type: String, default: '25 min' },
     sessions_per_cycle: { type: Number, default: 4 },
 
+    // Privacy & Sharing
+    dataSharingPermission: {
+        type: String,
+        enum: ['none', 'session', '7days', 'analytics_only'],
+        default: 'none'
+    },
+    permissionExpiry: { type: Date, default: null },
+    analyticsAccessStatus: {
+        type: String,
+        enum: ['none', 'pending', 'granted', 'denied'],
+        default: 'none'
+    },
+
     createdAt: { type: Date, default: Date.now }
 });
 

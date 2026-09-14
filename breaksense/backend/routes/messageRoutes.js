@@ -43,4 +43,25 @@ router.get('/conversations/:counselorId', async (req, res) => {
     }
 });
 
+// Update a message (Edit)
+router.put('/update/:messageId', async (req, res) => {
+    try {
+        const { text } = req.body;
+        const message = await Message.findByIdAndUpdate(req.params.messageId, { text }, { new: true });
+        res.json({ success: true, message });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Delete a message
+router.delete('/delete/:messageId', async (req, res) => {
+    try {
+        await Message.findByIdAndDelete(req.params.messageId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;

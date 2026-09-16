@@ -356,19 +356,21 @@ export default function SettingsScreen({ navigation }) {
               <Text style={[styles.itemLabel, { color: colors.textPrimary }]}>Theme Mode</Text>
               <Text style={styles.itemSub}>Switch between dark and light</Text>
             </View>
-            <View style={styles.themeSelector}>
-              <View style={styles.themeOption}>
-                <TouchableOpacity style={[styles.radioCircle, { backgroundColor: colors.card }, theme === 'Dark' && { backgroundColor: colors.accent }]} onPress={() => setTheme('Dark')}>
-                  {theme === 'Dark' && <Ionicons name="checkmark" size={12} color="#000" />}
-                </TouchableOpacity>
-                <Text style={styles.themeLabel}>Dark</Text>
-              </View>
-              <View style={styles.themeOption}>
-                <TouchableOpacity style={[styles.radioCircle, { backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border }, theme === 'Light' && { backgroundColor: colors.accent, borderColor: colors.accent }]} onPress={() => setTheme('Light')}>
-                  {theme === 'Light' && <Ionicons name="checkmark" size={12} color="#000" />}
-                </TouchableOpacity>
-                <Text style={styles.themeLabel}>Light</Text>
-              </View>
+            <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: 25, padding: 6, borderWidth: 1, borderColor: colors.border }}>
+              <TouchableOpacity
+                onPress={() => setTheme('Light')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: theme === 'Light' ? colors.accent : 'transparent', flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Ionicons name="sunny" size={16} color={theme === 'Light' ? '#000' : '#64748b'} />
+                {theme === 'Light' && <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#000' }}>Light</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setTheme('Dark')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: theme === 'Dark' ? colors.accent : 'transparent', flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Ionicons name="moon" size={16} color={theme === 'Dark' ? '#000' : '#64748b'} />
+                {theme === 'Dark' && <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#000' }}>Dark</Text>}
+              </TouchableOpacity>
             </View>
           </View>
 

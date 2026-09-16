@@ -37,7 +37,6 @@ const styles = StyleSheet.create({
     paddingTop: 35,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a3342',
     zIndex: 100,
   },
   logoWrapper: {
@@ -49,10 +48,6 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 42,
     height: 42,
-  },
-  logoText: { 
-    fontSize: 10,
-    fontWeight: 'bold' 
   },
   brandName: { 
     fontSize: 18,

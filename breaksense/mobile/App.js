@@ -36,12 +36,14 @@ const AuthStack = createNativeStackNavigator();
 
 function CustomDrawerContent(props) {
   const { user, setUser } = useUser();
-  const { colors, theme } = useTheme();
+  const { colors, theme, setTheme } = useTheme();
 
   const handleLogout = async () => {
     await AsyncStorage.clear();
     setUser(null);
   };
+
+  const isDark = theme === 'Dark';
 
   const activeIndex = props.state.index;
   const activeRouteName = props.state.routeNames[activeIndex];
@@ -118,9 +120,28 @@ function CustomDrawerContent(props) {
             <Text style={[styles.userName, { color: colors.textPrimary }]}>
               {user?.first_name} {user?.last_name}
             </Text>
-            <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', gap: 8 }}>
+              {/* Custom Theme Toggle */}
+              <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: 20, padding: 4, borderWidth: 1, borderColor: colors.border }}>
+                <TouchableOpacity
+                  onPress={() => setTheme('Light')}
+                  style={{ padding: 4, borderRadius: 15, backgroundColor: !isDark ? colors.accent : 'transparent' }}
+                >
+                  <Ionicons name="sunny" size={14} color={!isDark ? '#000' : '#64748b'} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setTheme('Dark')}
+                  style={{ padding: 4, borderRadius: 15, backgroundColor: isDark ? colors.accent : 'transparent' }}
+                >
+                  <Ionicons name="moon" size={14} color={isDark ? '#000' : '#64748b'} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity

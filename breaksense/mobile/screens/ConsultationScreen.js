@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
-  SafeAreaView, KeyboardAvoidingView, Platform, Modal, Alert, Clipboard
+  SafeAreaView, KeyboardAvoidingView, Platform, Modal, Alert, Clipboard, Pressable
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
-import Header from './components/Header';
 
 export default function ConsultationScreen() {
+  const navigation = useNavigation();
   const { user } = useUser();
   const { colors } = useTheme();
   const [messages, setMessages] = useState([]);
@@ -18,13 +19,21 @@ export default function ConsultationScreen() {
   const [counselor, setCounselor] = useState(null);
   const [showAccessModal, setShowAccessModal] = useState(false);
   const [sharingType, setSharingType] = useState('none');
+
+  // Message Menu State
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);
 
   useEffect(() => {
     fetchCounselorAndHistory();
-    // In a real app, check if user has already granted permission
-    setShowAccessModal(true);
+    checkInitialAccess();
   }, []);
+
+  const checkInitialAccess = async () => {
+    // In a real app, you would check the database first
+    setShowAccessModal(true);
+  };
 
   const fetchCounselorAndHistory = async () => {
     try {
@@ -32,10 +41,16 @@ export default function ConsultationScreen() {
       const foundCounselor = res.data[0];
       if (foundCounselor) {
         setCounselor(foundCounselor);
-        const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${foundCounselor._id}`);
-        setMessages(history.data);
+        loadHistory(foundCounselor._id);
       }
     } catch (e) { console.log("Chat load error", e); }
+  };
+
+  const loadHistory = async (cId) => {
+    try {
+      const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${cId}`);
+      setMessages(history.data);
+    } catch (e) {}
   };
 
   const handleSendMessage = async () => {
@@ -62,32 +77,28 @@ export default function ConsultationScreen() {
     } catch (e) { console.log("Send error", e); }
   };
 
-  const handleLongPress = (item) => {
-    if (item.sender !== user.id) return; // Only own messages
-
-    Alert.alert(
-      "Message Options",
-      "What would you like to do?",
-      [
-        { text: "Copy", onPress: () => Clipboard.setString(item.text) },
-        { text: "Edit", onPress: () => { setInputText(item.text); setEditingMessageId(item._id); } },
-        { text: "Delete", onPress: () => confirmDelete(item._id), style: 'destructive' },
-        { text: "Cancel", style: 'cancel' }
-      ]
-    );
+  const handleLongPress = (msg) => {
+    if (msg.sender !== user.id) return; // Only allow actions on own messages
+    setSelectedMessage(msg);
+    setShowMenu(true);
   };
 
-  const confirmDelete = (id) => {
-    Alert.alert("Delete Message", "Are you sure?", [
-      { text: "No" },
-      { text: "Yes", onPress: () => deleteMsg(id) }
-    ]);
+  const copyToClipboard = () => {
+    Clipboard.setString(selectedMessage.text);
+    setShowMenu(false);
   };
 
-  const deleteMsg = async (id) => {
+  const startEdit = () => {
+    setInputText(selectedMessage.text);
+    setEditingMessageId(selectedMessage._id);
+    setShowMenu(false);
+  };
+
+  const deleteMsg = async () => {
     try {
-      await axios.delete(`${API_BASE_URL}/messages/delete/${id}`);
-      setMessages(messages.filter(m => m._id !== id));
+      await axios.delete(`${API_BASE_URL}/messages/delete/${selectedMessage._id}`);
+      setMessages(messages.filter(m => m._id !== selectedMessage._id));
+      setShowMenu(false);
     } catch (e) { console.log("Delete error", e); }
   };
 
@@ -95,10 +106,22 @@ export default function ConsultationScreen() {
     try {
       await axios.put(`${API_BASE_URL}/auth/update-permissions`, {
         userId: user.id,
-        dataSharingPermission: sharingType
+        dataSharingPermission: sharingType,
+        analyticsAccessStatus: 'granted'
       });
       setShowAccessModal(false);
     } catch (e) { Alert.alert("Error", "Could not update permissions."); }
+  };
+
+  const handleDenyAccess = async () => {
+    try {
+      await axios.put(`${API_BASE_URL}/auth/update-permissions`, {
+        userId: user.id,
+        dataSharingPermission: 'none',
+        analyticsAccessStatus: 'denied'
+      });
+      setShowAccessModal(false);
+    } catch (e) { setShowAccessModal(false); }
   };
 
   const renderMessage = ({ item }) => {
@@ -108,7 +131,7 @@ export default function ConsultationScreen() {
     return (
       <TouchableOpacity
         onLongPress={() => handleLongPress(item)}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         style={[styles.msgContainer, isMine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}
       >
         <View style={[styles.msgBox, isMine ? { backgroundColor: colors.accent, borderBottomRightRadius: 2 } : { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 }]}>
@@ -120,21 +143,18 @@ export default function ConsultationScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#1A1D23' }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity>
-           <Ionicons name="chevron-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{counselor ? `Counselor ${counselor.last_name}` : 'Counselor'}</Text>
-        <View style={{ width: 24 }} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Header />
+      <View style={styles.titleArea}>
+         <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Counselor <Text style={{ color: colors.accent }}>Consult</Text></Text>
+         <Text style={styles.sub}>Ask for study advice or support.</Text>
       </View>
 
       <FlatList
         data={messages}
         keyExtractor={(item) => item._id}
         renderItem={renderMessage}
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : null} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
@@ -142,21 +162,56 @@ export default function ConsultationScreen() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder={editingMessageId ? "Edit message..." : "Type a message..."}
-              placeholderTextColor="#888"
+              placeholder={editingMessageId ? "Editing..." : "Type a message..."}
+              placeholderTextColor="#666"
               value={inputText}
               onChangeText={setInputText}
               multiline
             />
-            <TouchableOpacity onPress={handleSendMessage} style={styles.sendBtn}>
-              <Ionicons name="paper-plane" size={22} color="#000" />
+            {editingMessageId && (
+              <TouchableOpacity onPress={() => { setEditingMessageId(null); setInputText(''); }} style={{ marginRight: 10 }}>
+                 <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold' }}>CANCEL</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleSendMessage} style={[styles.sendBtn, { backgroundColor: colors.accent }]}>
+              <Ionicons name="paper-plane" size={20} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
 
+      {/* iMessage Style Action Menu */}
+      <Modal visible={showMenu} transparent animationType="fade">
+        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
+           <View style={styles.menuContent}>
+              <View style={styles.selectedMsgPreview}>
+                 <View style={[styles.msgBox, { backgroundColor: colors.accent, borderBottomRightRadius: 2 }]}>
+                    <Text style={[styles.msgText, { color: '#000' }]}>{selectedMessage?.text}</Text>
+                 </View>
+              </View>
+
+              <View style={styles.actionBox}>
+                 <TouchableOpacity style={styles.actionItem} onPress={startEdit}>
+                    <Text style={styles.actionText}>Edit</Text>
+                    <Ionicons name="pencil-outline" size={18} color="#FFF" />
+                 </TouchableOpacity>
+                 <View style={styles.divider} />
+                 <TouchableOpacity style={styles.actionItem} onPress={deleteMsg}>
+                    <Text style={[styles.actionText, { color: '#ef4444' }]}>Delete message</Text>
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                 </TouchableOpacity>
+                 <View style={styles.divider} />
+                 <TouchableOpacity style={styles.actionItem} onPress={copyToClipboard}>
+                    <Text style={styles.actionText}>Copy</Text>
+                    <Ionicons name="copy-outline" size={18} color="#FFF" />
+                 </TouchableOpacity>
+              </View>
+           </View>
+        </Pressable>
+      </Modal>
+
       {/* Access Request Modal */}
-      <Modal visible={showAccessModal} transparent animationType="fade">
+      <Modal visible={showAccessModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -173,8 +228,7 @@ export default function ConsultationScreen() {
 
             {[
               { id: 'session', label: 'Allow for this session only' },
-              { id: '7days', label: 'Allow for 7 days' },
-              { id: 'analytics_only', label: 'Analytics only, not full history' }
+              { id: '7days', label: 'Allow for 7 days' }
             ].map(opt => (
               <TouchableOpacity
                 key={opt.id}
@@ -189,7 +243,7 @@ export default function ConsultationScreen() {
             ))}
 
             <View style={styles.btnRow}>
-              <TouchableOpacity onPress={() => setShowAccessModal(false)} style={styles.denyBtn}>
+              <TouchableOpacity onPress={handleDenyAccess} style={styles.denyBtn}>
                 <Text style={styles.btnText}>Deny</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleAllowAccess} style={[styles.allowBtn, { backgroundColor: '#1A7A4D' }]}>
@@ -205,32 +259,52 @@ export default function ConsultationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#2A2E37' },
-  headerTitle: { color: '#FFF', fontSize: 18, fontFamily: 'Syne-Bold' },
+  header: {
+    height: Platform.OS === 'ios' ? 60 : 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    paddingTop: Platform.OS === 'ios' ? 0 : 10
+  },
+  backBtn: { padding: 5 },
+  headerTitleContainer: { flex: 1, alignItems: 'center' },
+  headerTitle: { color: '#FFF', fontSize: 18, fontFamily: 'Inter-Bold', textAlign: 'center' },
+  headerRight: { width: 40 },
   msgContainer: { marginBottom: 15, maxWidth: '80%' },
-  msgBox: { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 15 },
-  msgText: { fontSize: 15, fontFamily: 'Syne-Regular' },
+  msgBox: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  msgText: { fontSize: 15, lineHeight: 22 },
   msgTime: { color: '#555', fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
-  inputArea: { padding: 20, paddingBottom: Platform.OS === 'ios' ? 30 : 20 },
-  inputWrapper: { flexDirection: 'row', backgroundColor: '#2A2E37', borderRadius: 15, alignItems: 'center', paddingHorizontal: 15, minHeight: 50 },
+  inputArea: { padding: 15, paddingBottom: Platform.OS === 'ios' ? 30 : 15 },
+  inputWrapper: { flexDirection: 'row', backgroundColor: '#1E2229', borderRadius: 25, alignItems: 'center', paddingHorizontal: 15, minHeight: 50 },
   input: { flex: 1, color: '#FFF', fontSize: 15, paddingVertical: 10 },
-  sendBtn: { backgroundColor: '#00FF88', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
+  sendBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
 
-  // Modal
+  // Action Menu
+  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
+  menuContent: { width: '85%', alignItems: 'flex-end' },
+  selectedMsgPreview: { marginBottom: 15, maxWidth: '90%' },
+  actionBox: { backgroundColor: '#20242D', width: 220, borderRadius: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#333' },
+  actionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
+  actionText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
+  divider: { height: 1, backgroundColor: '#333' },
+
+  // Privacy Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#20242D', width: '90%', borderRadius: 25, padding: 25, borderWidth: 1, borderBottomColor: '#333' },
+  modalContent: { backgroundColor: '#16191E', width: '90%', borderRadius: 25, padding: 25, borderWidth: 1, borderColor: '#2A2E37' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 10 },
-  modalHeaderTitle: { color: '#FFF', fontSize: 16, fontFamily: 'Syne-Regular', opacity: 0.8 },
-  infoBox: { backgroundColor: '#2A303C', padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#3D4452', marginBottom: 20 },
-  infoTitle: { color: '#FFF', fontSize: 16, fontFamily: 'Syne-Bold', marginBottom: 10 },
+  modalHeaderTitle: { color: '#FFF', fontSize: 16, opacity: 0.8 },
+  infoBox: { backgroundColor: '#20242D', padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#333', marginBottom: 20 },
+  infoTitle: { color: '#FFF', fontSize: 18, fontFamily: 'Inter-Bold', marginBottom: 10 },
   infoSub: { color: '#888', fontSize: 12 },
-  optionLabel: { color: '#888', fontSize: 14, marginBottom: 15, fontFamily: 'Syne-Regular' },
-  optionRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2A2E37', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#333' },
+  optionLabel: { color: '#888', fontSize: 14, marginBottom: 15 },
+  optionRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E2229', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#333' },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#555', marginRight: 15, justifyContent: 'center', alignItems: 'center' },
   radioInner: { width: 10, height: 10, borderRadius: 5 },
-  optionText: { color: '#FFF', fontSize: 14, fontFamily: 'Syne-Regular' },
+  optionText: { color: '#FFF', fontSize: 14 },
   btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 15 },
-  denyBtn: { flex: 1, height: 50, backgroundColor: '#7D1F1F', borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  denyBtn: { flex: 1, height: 50, backgroundColor: '#3b1620', borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ef4444' },
   allowBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   btnText: { color: '#FFF', fontWeight: 'bold' }
 });

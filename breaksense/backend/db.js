@@ -1,12 +1,20 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 require('dotenv').config();
+
+// Force Node.js to use Google DNS for SRV record resolution
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://rosemariegailo1_db_user:YOUR_PASSWORD@cluster0.rtu72uz.mongodb.net/breaksense?retryWrites=true&w=majority&appName=Cluster0');
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        const uri = process.env.MONGODB_URI;
+        if (!uri) {
+            throw new Error("MONGODB_URI is missing in your .env file!");
+        }
+        const conn = await mongoose.connect(uri);
+        console.log(`🚀 MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.error(`Error: ${error.message}`);
+        console.error(`❌ Connection Error: ${error.message}`);
         process.exit(1);
     }
 };

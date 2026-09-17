@@ -92,12 +92,7 @@ export default function App() {
     if (isLoggedIn && counselor) {
       fetchStudents();
     }
-  }, []);
-    try {
-      const res = await axios.get(`${API_BASE_URL}/auth/students`);
-      setStudents(res.data);
-    } catch (e) { console.log("Failed to fetch students", e); }
-  };
+  }, [isLoggedIn, counselor]);
 
   const loadStudentData = async (student, targetView = 'chat') => {
     setSelectedStudent(student);

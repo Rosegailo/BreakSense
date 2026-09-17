@@ -69,7 +69,16 @@ export default function ConsultationScreen() {
           onPress: async () => {
             try {
               await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId: user.id });
+
+              // Automated Message
+              await axios.post(`${API_BASE_URL}/messages/send`, {
+                senderId: user.id,
+                recipientId: counselor._id,
+                text: `🚫 System: Analytics access revoked by student.`
+              });
+
               setAccessStatus('none');
+              loadHistory(counselor._id);
               Alert.alert("Success", "Sharing session ended.");
             } catch (e) { Alert.alert("Error", "Could not end session."); }
           }
@@ -153,7 +162,17 @@ export default function ConsultationScreen() {
         dataSharingPermission: sharingType,
         analyticsAccessStatus: 'granted'
       });
+
+      // Automated Message
+      const durationLabel = sharingType === '24hours' ? '24 hours' : '7 days';
+      await axios.post(`${API_BASE_URL}/messages/send`, {
+        senderId: user.id,
+        recipientId: counselor._id,
+        text: `🔒 System: Analytics access granted for ${durationLabel}.`
+      });
+
       setShowAccessModal(false);
+      loadHistory(counselor._id);
     } catch (e) { Alert.alert("Error", "Could not update permissions."); }
   };
 
@@ -170,9 +189,18 @@ export default function ConsultationScreen() {
 
   const renderMessage = ({ item }) => {
     const isMine = item.sender === user.id;
+    const isSystem = item.text.includes('System:');
     const time = item.createdAt
       ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : 'Sending...';
+
+    if (isSystem) {
+      return (
+        <View style={styles.systemMsgContainer}>
+          <Text style={styles.systemMsgText}>{item.text.replace('System:', '').trim()}</Text>
+        </View>
+      );
+    }
 
     return (
       <View style={[styles.msgContainer, isMine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}>
@@ -308,7 +336,7 @@ export default function ConsultationScreen() {
             <Text style={[styles.optionLabel, { fontFamily: 'JetBrains', fontSize: 11, letterSpacing: 1.5, marginBottom: 20 }]}>Choose how long to share</Text>
 
             {[
-              { id: 'session', label: 'Allow for this session only' },
+              { id: '24hours', label: 'Allow for 24 hours' },
               { id: '7days', label: 'Allow for 7 days' }
             ].map(opt => (
               <TouchableOpacity
@@ -347,6 +375,8 @@ const styles = StyleSheet.create({
   msgBox: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   msgText: { fontSize: 15, lineHeight: 22 },
   msgTime: { color: '#555', fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
+  systemMsgContainer: { alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginVertical: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  systemMsgText: { color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains', letterSpacing: 0.5, textTransform: 'uppercase' },
   activeSessionBanner: { flexDirection: 'row', alignItems: 'center', padding: 15, marginHorizontal: 20, borderRadius: 15, borderWidth: 1, marginBottom: 10 },
   sessionTitle: { fontSize: 13, marginBottom: 2 },
   sessionSub: { fontSize: 10, opacity: 0.8 },

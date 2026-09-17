@@ -369,12 +369,25 @@ export default function App() {
                       </div>
                     ) : (
                       messages.map((m, idx) => {
+                        const isSystem = m.text.includes('System:');
                         const messageDate = new Date(m.createdAt);
                         const prevMessage = messages[idx - 1];
                         const prevDate = prevMessage ? new Date(prevMessage.createdAt) : null;
 
                         // Show time if it's the first message or if more than 30 minutes have passed since previous
                         const showTime = !prevDate || (messageDate - prevDate) > 30 * 60 * 1000;
+
+                        if (isSystem) {
+                          return (
+                            <div key={idx} className="flex justify-center my-4">
+                              <div className={`${theme.cardLighter} px-4 py-1.5 rounded-full border ${theme.border} opacity-80`}>
+                                <p className={`text-[9px] font-black ${theme.textMuted} tracking-[0.15em] uppercase`}>
+                                  {m.text.replace('System:', '').trim()}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
 
                         return (
                           <React.Fragment key={idx}>

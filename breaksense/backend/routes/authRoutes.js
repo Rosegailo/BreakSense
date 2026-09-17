@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Break = require('../models/Break');
+const Message = require('../models/Message');
 
 // --- SIGNUP ---
 router.post('/signup', async (req, res) => {
@@ -144,9 +145,9 @@ router.put('/update-permissions', async (req, res) => {
         if (dataSharingPermission === '7days') {
             permissionExpiry = new Date();
             permissionExpiry.setDate(permissionExpiry.getDate() + 7);
-        } else if (dataSharingPermission === 'session') {
+        } else if (dataSharingPermission === '24hours' || dataSharingPermission === 'session') {
             permissionExpiry = new Date();
-            permissionExpiry.setHours(permissionExpiry.getHours() + 1);
+            permissionExpiry.setHours(permissionExpiry.getHours() + 24);
         }
 
         const updateData = { dataSharingPermission, permissionExpiry };

@@ -11,8 +11,8 @@ const API_BASE_URL = 'https://breaksense-backend.onrender.com/api';
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [counselor, setCounselor] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('counselor'));
+  const [counselor, setCounselor] = useState(() => JSON.parse(localStorage.getItem('counselor')));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [students, setStudents] = useState([]);
@@ -63,8 +63,10 @@ export default function App() {
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
       if (res.data.success && res.data.user.role === 'counselor') {
-        setCounselor(res.data.user);
+        const user = res.data.user;
+        setCounselor(user);
         setIsLoggedIn(true);
+        localStorage.setItem('counselor', JSON.stringify(user));
         fetchStudents();
       } else {
         alert("Access Denied: Only counselors can access this portal.");
@@ -72,7 +74,25 @@ export default function App() {
     } catch (e) { alert("Login failed. Check credentials."); }
   };
 
+  const handleSignOut = () => {
+    setIsLoggedIn(false);
+    setCounselor(null);
+    localStorage.removeItem('counselor');
+  };
+
   const fetchStudents = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/auth/students`);
+      setStudents(res.data);
+    } catch (e) { console.log("Failed to fetch students", e); }
+  };
+
+  // Auto-fetch students if already logged in on refresh
+  useEffect(() => {
+    if (isLoggedIn && counselor) {
+      fetchStudents();
+    }
+  }, []);
     try {
       const res = await axios.get(`${API_BASE_URL}/auth/students`);
       setStudents(res.data);
@@ -272,7 +292,7 @@ export default function App() {
         </div>
 
         <div className={`h-28 ${theme.sidebar} border-t ${theme.border} px-10 flex items-center justify-between gap-4`}>
-          <button onClick={() => setIsLoggedIn(false)} className={`flex items-center gap-4 ${theme.textMuted} hover:${theme.text} transition-colors py-2 font-black uppercase tracking-widest text-[11px]`}>
+          <button onClick={handleSignOut} className={`flex items-center gap-4 ${theme.textMuted} hover:${theme.text} transition-colors py-2 font-black uppercase tracking-widest text-[11px]`}>
             <LogOut size={18} />
             <span>Sign Out</span>
           </button>

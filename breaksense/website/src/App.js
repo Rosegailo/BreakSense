@@ -24,7 +24,19 @@ export default function App() {
   const [requestSent, setRequestSent] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
+  const [viewedStudents, setViewedStudents] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('viewedStudents');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
+  });
   const chatEndRef = useRef(null);
+
+  const markStudentAsViewed = (id) => {
+    const updated = { ...viewedStudents, [id]: true };
+    setViewedStudents(updated);
+    sessionStorage.setItem('viewedStudents', JSON.stringify(updated));
+  };
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -434,17 +446,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              ) : selectedStudent.analyticsAccessStatus === 'granted' && view !== 'stats' ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className="text-4xl font-black text-white tracking-tighter mb-8">Request granted</h2>
-                   <button
-                     onClick={() => setView('stats')}
-                     className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all shadow-xl`}
-                   >
-                     View
-                   </button>
-                </div>
-              ) : selectedStudent.analyticsAccessStatus === 'granted' && view === 'stats' ? (
+              ) : selectedStudent.analyticsAccessStatus === 'granted' && (view === 'stats' || (view !== 'chat' && viewedStudents[selectedStudent._id])) ? (
                 <div className="flex-1 overflow-y-auto p-10 space-y-10">
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-6">
@@ -515,6 +517,19 @@ export default function App() {
                        </div>
                     </div>
                   </div>
+                </div>
+              ) : selectedStudent.analyticsAccessStatus === 'granted' ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-40">
+                   <h2 className="text-4xl font-black text-white tracking-tighter mb-8">Request granted</h2>
+                   <button
+                     onClick={() => {
+                        markStudentAsViewed(selectedStudent._id);
+                        setView('stats');
+                     }}
+                     className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all shadow-xl`}
+                   >
+                     View
+                   </button>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'denied' ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-40">

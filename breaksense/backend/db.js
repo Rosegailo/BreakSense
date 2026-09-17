@@ -3,14 +3,17 @@ require('dotenv').config();
 
 const connectDB = async () => {
     try {
-        const uri = process.env.MONGODB_URI;
+        let uri = process.env.MONGODB_URI;
         if (!uri) {
             console.error("❌ CRITICAL: MONGODB_URI is missing in environment variables!");
             process.exit(1);
         }
 
+        // Clean the URI (remove quotes or accidental spaces)
+        uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+
         const conn = await mongoose.connect(uri, {
-            serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+            serverSelectionTimeoutMS: 5000,
         });
         console.log(`🚀 MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {

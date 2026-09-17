@@ -9,6 +9,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../Config';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
+import Header from './components/Header';
 
 export default function ConsultationScreen() {
   const navigation = useNavigation();
@@ -28,11 +29,28 @@ export default function ConsultationScreen() {
   useEffect(() => {
     fetchCounselorAndHistory();
     checkInitialAccess();
-  }, []);
+
+    // Auto-refresh chat and check for access requests every 5 seconds
+    const interval = setInterval(() => {
+      checkInitialAccess();
+      if (counselor) {
+        loadHistory(counselor._id);
+      } else {
+        fetchCounselorAndHistory();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [counselor]);
 
   const checkInitialAccess = async () => {
-    // In a real app, you would check the database first
-    setShowAccessModal(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/auth/students`);
+      const me = res.data.find(s => s._id === user.id);
+      if (me && me.analyticsAccessStatus === 'pending') {
+        setShowAccessModal(true);
+      }
+    } catch (e) { console.log("Permission check error", e); }
   };
 
   const fetchCounselorAndHistory = async () => {
@@ -47,6 +65,7 @@ export default function ConsultationScreen() {
   };
 
   const loadHistory = async (cId) => {
+    if (!user || !user.id) return;
     try {
       const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${cId}`);
       setMessages(history.data);
@@ -54,7 +73,7 @@ export default function ConsultationScreen() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !counselor) return;
+    if (!inputText.trim() || !counselor || !user || !user.id) return;
 
     if (editingMessageId) {
       try {
@@ -126,7 +145,9 @@ export default function ConsultationScreen() {
 
   const renderMessage = ({ item }) => {
     const isMine = item.sender === user.id;
-    const time = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = item.createdAt
+      ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'Sending...';
 
     return (
       <TouchableOpacity
@@ -145,16 +166,28 @@ export default function ConsultationScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Header />
-      <View style={styles.titleArea}>
-         <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold' }]}>Counselor <Text style={{ color: colors.accent }}>Consult</Text></Text>
-         <Text style={styles.sub}>Ask for study advice or support.</Text>
+      <View style={styles.titleContainer}>
+        <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'Syne-Bold', fontSize: 20 }]}>
+          Counselor <Text style={{ color: colors.accent }}>Consult</Text>
+        </Text>
+        <Text style={[styles.subtitle, { fontFamily: 'Outfit', color: colors.textSecondary, marginTop: 5 }]}>
+          Ask for study advice or support.
+        </Text>
       </View>
 
       <FlatList
         data={messages}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item, index) => item._id || index.toString()}
         renderItem={renderMessage}
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        ListEmptyComponent={() => (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
+             <Ionicons name="chatbubbles-outline" size={40} color="#3A3F4B" />
+             <Text style={{ color: '#666', marginTop: 10, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {counselor ? "No messages yet" : "Connecting to Counselor..."}
+             </Text>
+          </View>
+        )}
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : null} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
@@ -259,19 +292,9 @@ export default function ConsultationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    height: Platform.OS === 'ios' ? 60 : 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    paddingTop: Platform.OS === 'ios' ? 0 : 10
-  },
-  backBtn: { padding: 5 },
-  headerTitleContainer: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: '#FFF', fontSize: 18, fontFamily: 'Inter-Bold', textAlign: 'center' },
-  headerRight: { width: 40 },
+  titleContainer: { paddingHorizontal: 20, paddingTop: 20, marginBottom: 25 },
+  title: { fontSize: 22 },
+  subtitle: { color: '#888', fontSize: 14 },
   msgContainer: { marginBottom: 15, maxWidth: '80%' },
   msgBox: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   msgText: { fontSize: 15, lineHeight: 22 },

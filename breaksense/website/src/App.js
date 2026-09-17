@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Users, MessageSquare, TrendingUp, LogOut, Search, AlertCircle, CheckCircle, Clock, Send, BarChart2, User, Lock, MoreHorizontal, Sun, Moon
@@ -24,6 +24,17 @@ export default function App() {
   const [requestSent, setRequestSent] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
+  const chatEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (view === 'chat') {
+      scrollToBottom();
+    }
+  }, [messages, view]);
 
   // Theme configuration
   const theme = {
@@ -68,18 +79,15 @@ export default function App() {
     } catch (e) { console.log("Failed to fetch students", e); }
   };
 
-  const loadStudentData = async (student) => {
+  const loadStudentData = async (student, targetView = 'chat') => {
     setSelectedStudent(student);
-    setView('chat');
+    setView(targetView);
     setRequestSent(student.analyticsAccessStatus === 'pending');
     try {
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${student._id}`);
       setMessages(chatRes.data);
 
-      if (student.analyticsAccessStatus === 'granted' && studentStats) {
-        // We already have the stats, just show the actual dashboard view
-        setView('stats');
-      } else if (student.analyticsAccessStatus === 'granted') {
+      if (student.analyticsAccessStatus === 'granted') {
         const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
         setStudentStats(statsRes.data);
       } else {
@@ -213,28 +221,28 @@ export default function App() {
   return (
     <div className={`h-screen ${theme.bg} flex ${theme.text} font-sans overflow-hidden transition-colors duration-300`}>
       {/* Sidebar */}
-      <aside className={`w-100 ${theme.sidebar} border-r ${theme.sidebarBorder} flex flex-col h-full`}>
+      <aside className={`w-96 ${theme.sidebar} border-r ${theme.sidebarBorder} flex flex-col h-full shadow-2xl`}>
         <div className={`h-24 ${theme.sidebar} border-b ${theme.sidebarBorder} px-10 flex items-center gap-4`}>
-          <img src="/logo.png" alt="BreakSense Logo" className="w-20 h-20 object-contain" />
+          <img src="/logo.png" alt="BreakSense Logo" className="w-12 h-12 object-contain" />
           <span className={`text-3xl font-black ${theme.text} italic tracking-tighter`}>Break<span className="text-[#00FF88] not-italic">Sense</span></span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           <div>
-            <p className={`text-[10px] font-black ${theme.textMuted} uppercase tracking-[0.2em] mb-4`}>STUDENT DIRECTORY</p>
-            <div className="space-y-2">
+            <p className={`text-[10px] font-black ${theme.textMuted} uppercase tracking-[0.2em] mb-6 px-2`}>STUDENT DIRECTORY</p>
+            <div className="space-y-3">
               {students.map(s => (
                 <button
                   key={s._id}
                   onClick={() => loadStudentData(s)}
-                  className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 transition-all ${selectedStudent?._id === s._id ? `${theme.cardLighter} ring-1 ring-[#00FF8844]` : `hover:${theme.cardLighter}`}`}
+                  className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 ${selectedStudent?._id === s._id ? `${theme.cardLighter} ring-1 ring-[#00FF8844] shadow-lg` : `hover:${theme.cardLighter}`}`}
                 >
-                  <div className={`w-20 h-20 rounded-2xl ${theme.cardLighter} border ${theme.border} flex items-center justify-center`}>
-                    <User size={32} className={theme.textMuted} />
+                  <div className={`w-14 h-14 rounded-2xl ${theme.cardLighter} border ${theme.border} flex items-center justify-center shadow-inner`}>
+                    <User size={24} className={theme.textMuted} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-bold truncate ${theme.text}`}>{s.first_name} {s.last_name}</p>
-                    <p className={`text-[9px] ${theme.textMuted} font-black uppercase tracking-widest mt-0.5 opacity-80`}>Streak: {s.DayStreak || 0}d</p>
+                    <p className={`text-sm font-black truncate ${theme.text}`}>{s.first_name} {s.last_name}</p>
+                    <p className={`text-[9px] ${theme.textMuted} font-black uppercase tracking-widest mt-0.5 opacity-80`}>Streak: {s.DayStreak || 0}D</p>
                   </div>
                 </button>
               ))}
@@ -366,6 +374,7 @@ export default function App() {
                         );
                       })
                     )}
+                    <div ref={chatEndRef} />
                   </div>
 
                   <div className={`h-28 ${theme.inputArea} border-t ${theme.border} px-10 flex items-center flex-none`}>
@@ -390,16 +399,14 @@ export default function App() {
                   </div>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'granted' && view !== 'stats' ? (
-                <div className="flex-1 overflow-y-auto p-10 space-y-10">
-                  <div className="flex-1 flex flex-col items-center justify-center py-40">
-                     <h2 className="text-4xl font-black text-white tracking-tighter mb-8">Request granted</h2>
-                     <button
-                       onClick={() => setView('stats')}
-                       className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all`}
-                     >
-                       View
-                     </button>
-                  </div>
+                <div className="flex-1 flex flex-col items-center justify-center py-40">
+                   <h2 className="text-4xl font-black text-white tracking-tighter mb-8">Request granted</h2>
+                   <button
+                     onClick={() => setView('stats')}
+                     className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all shadow-xl`}
+                   >
+                     View
+                   </button>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'granted' && view === 'stats' ? (
                 <div className="flex-1 overflow-y-auto p-10 space-y-10">
@@ -475,29 +482,29 @@ export default function App() {
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'denied' ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className="text-4xl font-black text-[#FF3B3B] tracking-tighter mb-8">Request denied</h2>
+                   <h2 className="text-4xl font-black text-[#FF3B3B] tracking-tighter mb-4">Request denied</h2>
                    <button
                      onClick={() => loadStudentData(selectedStudent)}
-                     className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all`}
+                     className={`text-xs font-black ${theme.textMuted} lowercase border-b border-[#333] hover:text-white transition-all`}
                    >
                      close
                    </button>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'pending' || requestSent ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className={`text-2xl font-black ${theme.text} tracking-tight mb-8`}>You don't have access to this student's Analytics.</h2>
-                   <h2 className={`text-2xl font-black ${theme.text} tracking-tight mb-12`}>Would you like to request access?</h2>
-                   <div className={`${theme.cardLighter} border ${theme.border} px-10 py-4 rounded-2xl shadow-xl`}>
-                      <p className={`${theme.textMuted} text-xs font-black uppercase tracking-widest`}>Request sent to {selectedStudent.first_name} {selectedStudent.last_name}</p>
+                <div className="flex-1 flex flex-col items-center justify-center py-40 text-center">
+                   <h2 className={`text-4xl font-black ${theme.text} tracking-tight mb-4 max-w-2xl px-10`}>You don't have access to this student's Analytics.</h2>
+                   <h2 className={`text-3xl font-black ${theme.text} tracking-tight mb-12`}>Would you like to request access?</h2>
+                   <div className={`${theme.cardLighter} border ${theme.border} px-12 py-4 rounded-full shadow-xl opacity-50`}>
+                      <p className={`${theme.textMuted} text-xs font-black`}>Request sent to {selectedStudent.first_name} {selectedStudent.last_name}</p>
                    </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className={`text-2xl font-black ${theme.text} tracking-tight mb-8 text-center`}>You don't have access to this<br/>student's Analytics.</h2>
-                   <h2 className={`text-2xl font-black ${theme.text} tracking-tight mb-12`}>Would you like to request access?</h2>
+                <div className="flex-1 flex flex-col items-center justify-center py-40 text-center">
+                   <h2 className={`text-4xl font-black ${theme.text} tracking-tight mb-4 max-w-2xl px-10`}>You don't have access to this student's Analytics.</h2>
+                   <h2 className={`text-3xl font-black ${theme.text} tracking-tight mb-12`}>Would you like to request access?</h2>
                    <button
                      onClick={requestAccess}
-                     className="bg-[#1A7A4D] hover:bg-[#15633E] text-[#00FF88] px-12 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-[#00FF8811]"
+                     className="bg-[#1A7A4D] hover:bg-[#15633E] text-[#00FF88] px-14 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-[#00FF8811]"
                    >
                      Request access
                    </button>

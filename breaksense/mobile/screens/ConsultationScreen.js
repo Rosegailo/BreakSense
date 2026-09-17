@@ -20,6 +20,7 @@ export default function ConsultationScreen() {
   const [counselor, setCounselor] = useState(null);
   const [showAccessModal, setShowAccessModal] = useState(false);
   const [sharingType, setSharingType] = useState('none');
+  const [accessStatus, setAccessStatus] = useState('none'); // 'granted', 'pending', 'denied', 'none'
 
   // Message Menu State
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -47,10 +48,34 @@ export default function ConsultationScreen() {
     try {
       const res = await axios.get(`${API_BASE_URL}/auth/students`);
       const me = res.data.find(s => s._id === user.id);
-      if (me && me.analyticsAccessStatus === 'pending') {
-        setShowAccessModal(true);
+      if (me) {
+        setAccessStatus(me.analyticsAccessStatus);
+        if (me.analyticsAccessStatus === 'pending') {
+          setShowAccessModal(true);
+        }
       }
     } catch (e) { console.log("Permission check error", e); }
+  };
+
+  const handleRevokeAccess = async () => {
+    Alert.alert(
+      "End Session?",
+      "Stopping the sharing session will immediately hide your analytics from the counselor.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "End Session",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId: user.id });
+              setAccessStatus('none');
+              Alert.alert("Success", "Sharing session ended.");
+            } catch (e) { Alert.alert("Error", "Could not end session."); }
+          }
+        }
+      ]
+    );
   };
 
   const fetchCounselorAndHistory = async () => {
@@ -194,6 +219,18 @@ export default function ConsultationScreen() {
         </Text>
       </View>
 
+      {accessStatus === 'granted' && (
+        <View style={[styles.activeSessionBanner, { backgroundColor: '#1A1D23', borderColor: colors.accent + '33' }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sessionTitle, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>Analytics Sharing Active</Text>
+            <Text style={[styles.sessionSub, { color: '#94a3b8', fontFamily: 'Inter' }]}>You have the ability to end this sharing session at any time.</Text>
+          </View>
+          <TouchableOpacity onPress={handleRevokeAccess} style={[styles.endBtn, { backgroundColor: '#3b1620', borderColor: '#ef4444' }]}>
+            <Text style={[styles.endBtnText, { color: '#ef4444' }]}>End Session</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         data={messages}
         keyExtractor={(item, index) => item._id || index.toString()}
@@ -310,6 +347,11 @@ const styles = StyleSheet.create({
   msgBox: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
   msgText: { fontSize: 15, lineHeight: 22 },
   msgTime: { color: '#555', fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
+  activeSessionBanner: { flexDirection: 'row', alignItems: 'center', padding: 15, marginHorizontal: 20, borderRadius: 15, borderWidth: 1, marginBottom: 10 },
+  sessionTitle: { fontSize: 13, marginBottom: 2 },
+  sessionSub: { fontSize: 10, opacity: 0.8 },
+  endBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  endBtnText: { fontSize: 11, fontWeight: 'bold' },
   inputArea: { padding: 15, paddingBottom: Platform.OS === 'ios' ? 30 : 15 },
   inputWrapper: { flexDirection: 'row', backgroundColor: '#1E2229', borderRadius: 25, alignItems: 'center', paddingHorizontal: 15, minHeight: 50 },
   input: { flex: 1, color: '#FFF', fontSize: 15, paddingVertical: 10 },

@@ -159,4 +159,19 @@ router.put('/update-permissions', async (req, res) => {
     }
 });
 
+// --- REVOKE ACCESS ---
+router.put('/revoke-access', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await User.findByIdAndUpdate(userId, {
+            dataSharingPermission: 'none',
+            analyticsAccessStatus: 'none',
+            permissionExpiry: null
+        });
+        res.json({ success: true, message: "Access revoked." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;

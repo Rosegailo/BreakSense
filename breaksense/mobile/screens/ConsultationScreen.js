@@ -150,16 +150,35 @@ export default function ConsultationScreen() {
       : 'Sending...';
 
     return (
-      <TouchableOpacity
-        onLongPress={() => handleLongPress(item)}
-        activeOpacity={0.7}
-        style={[styles.msgContainer, isMine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}
-      >
-        <View style={[styles.msgBox, isMine ? { backgroundColor: colors.accent, borderBottomRightRadius: 2 } : { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 }]}>
-          <Text style={[styles.msgText, { color: isMine ? '#000' : '#FFF' }]}>{item.text}</Text>
+      <View style={[styles.msgContainer, isMine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {!isMine && (
+             <View style={[styles.msgBox, { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 }]}>
+                <Text style={[styles.msgText, { color: '#FFF' }]}>{item.text}</Text>
+             </View>
+          )}
+
+          {isMine && (
+            <>
+              <TouchableOpacity
+                onPress={() => handleLongPress(item)}
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="ellipsis-horizontal" size={16} color="#64748b" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onLongPress={() => handleLongPress(item)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.msgBox, { backgroundColor: colors.accent, borderBottomRightRadius: 2 }]}>
+                  <Text style={[styles.msgText, { color: '#000' }]}>{item.text}</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
-        <Text style={styles.msgTime}>{time}</Text>
-      </TouchableOpacity>
+        <Text style={[styles.msgTime, isMine ? { alignSelf: 'flex-end', marginRight: 0 } : { alignSelf: 'flex-start' }]}>{time}</Text>
+      </View>
     );
   };
 
@@ -217,47 +236,39 @@ export default function ConsultationScreen() {
       <Modal visible={showMenu} transparent animationType="fade">
         <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
            <View style={styles.menuContent}>
-              <View style={styles.selectedMsgPreview}>
-                 <View style={[styles.msgBox, { backgroundColor: colors.accent, borderBottomRightRadius: 2 }]}>
-                    <Text style={[styles.msgText, { color: '#000' }]}>{selectedMessage?.text}</Text>
-                 </View>
-              </View>
-
-              <View style={styles.actionBox}>
+              <View style={[styles.actionBox, { backgroundColor: '#1E2229', borderColor: '#2A2E37', width: 200 }]}>
                  <TouchableOpacity style={styles.actionItem} onPress={startEdit}>
-                    <Text style={styles.actionText}>Edit</Text>
-                    <Ionicons name="pencil-outline" size={18} color="#FFF" />
+                    <Text style={[styles.actionText, { color: '#FFF', fontFamily: 'Inter-Bold' }]}>Edit</Text>
                  </TouchableOpacity>
-                 <View style={styles.divider} />
+                 <View style={[styles.divider, { backgroundColor: '#2A2E37' }]} />
                  <TouchableOpacity style={styles.actionItem} onPress={deleteMsg}>
-                    <Text style={[styles.actionText, { color: '#ef4444' }]}>Delete message</Text>
-                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    <Text style={[styles.actionText, { color: '#FF5C5C', fontFamily: 'Inter-Bold' }]}>Delete message</Text>
                  </TouchableOpacity>
-                 <View style={styles.divider} />
+                 <View style={[styles.divider, { backgroundColor: '#2A2E37' }]} />
                  <TouchableOpacity style={styles.actionItem} onPress={copyToClipboard}>
-                    <Text style={styles.actionText}>Copy</Text>
-                    <Ionicons name="copy-outline" size={18} color="#FFF" />
+                    <Text style={[styles.actionText, { color: '#FFF', fontFamily: 'Inter-Bold' }]}>Copy</Text>
                  </TouchableOpacity>
               </View>
+              {/* Optional bubble indicator if needed, but the image is clean */}
            </View>
         </Pressable>
       </Modal>
 
       {/* Access Request Modal */}
-      <Modal visible={showAccessModal} transparent animationType="slide">
+      <Modal visible={showAccessModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: '#1A1D23', borderColor: '#2A2E37' }]}>
             <View style={styles.modalHeader}>
-               <MaterialCommunityIcons name="lock-outline" size={20} color="#FFF" />
-               <Text style={styles.modalHeaderTitle}>System Access Request</Text>
+               <Ionicons name="lock-closed-outline" size={18} color="#94a3b8" />
+               <Text style={[styles.modalHeaderTitle, { fontFamily: 'JetBrains', fontSize: 13, letterSpacing: 1 }]}>System. Access Request</Text>
             </View>
 
-            <View style={styles.infoBox}>
-               <Text style={styles.infoTitle}>Your counselor wants to view your break history and analytics.</Text>
-               <Text style={styles.infoSub}>This lets them see your session activity and recovery patterns</Text>
+            <View style={[styles.infoBox, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' }]}>
+               <Text style={[styles.infoTitle, { color: '#FFF', fontSize: 16, fontFamily: 'Outfit' }]}>Your counselor wants to view your break history and analytics.</Text>
+               <Text style={[styles.infoSub, { color: '#64748b', fontSize: 12, marginTop: 8 }]}>This lets them see your session activity and recovery patterns</Text>
             </View>
 
-            <Text style={styles.optionLabel}>Choose how long to share</Text>
+            <Text style={[styles.optionLabel, { fontFamily: 'JetBrains', fontSize: 11, letterSpacing: 1.5, marginBottom: 20 }]}>Choose how long to share</Text>
 
             {[
               { id: 'session', label: 'Allow for this session only' },
@@ -266,21 +277,21 @@ export default function ConsultationScreen() {
               <TouchableOpacity
                 key={opt.id}
                 onPress={() => setSharingType(opt.id)}
-                style={styles.optionRow}
+                style={[styles.optionRow, { backgroundColor: 'transparent', borderColor: sharingType === opt.id ? colors.accent : '#2A2E37' }]}
               >
-                <View style={[styles.radio, sharingType === opt.id && { borderColor: colors.accent }]}>
+                <View style={[styles.radio, { borderColor: sharingType === opt.id ? colors.accent : '#555' }]}>
                   {sharingType === opt.id && <View style={[styles.radioInner, { backgroundColor: colors.accent }]} />}
                 </View>
-                <Text style={styles.optionText}>{opt.label}</Text>
+                <Text style={[styles.optionText, { color: sharingType === opt.id ? '#FFF' : '#94a3b8' }]}>{opt.label}</Text>
               </TouchableOpacity>
             ))}
 
             <View style={styles.btnRow}>
-              <TouchableOpacity onPress={handleDenyAccess} style={styles.denyBtn}>
-                <Text style={styles.btnText}>Deny</Text>
+              <TouchableOpacity onPress={handleDenyAccess} style={[styles.denyBtn, { backgroundColor: '#3b1620', borderColor: '#7f1d1d' }]}>
+                <Text style={[styles.btnText, { color: '#ef4444' }]}>Deny</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleAllowAccess} style={[styles.allowBtn, { backgroundColor: '#1A7A4D' }]}>
-                <Text style={styles.btnText}>Allow Access</Text>
+              <TouchableOpacity onPress={handleAllowAccess} style={[styles.allowBtn, { backgroundColor: '#14532d', borderColor: '#166534' }]}>
+                <Text style={[styles.btnText, { color: '#22c55e' }]}>Allow Access</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -314,20 +325,20 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#333' },
 
   // Privacy Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#16191E', width: '90%', borderRadius: 25, padding: 25, borderWidth: 1, borderColor: '#2A2E37' },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 10 },
-  modalHeaderTitle: { color: '#FFF', fontSize: 16, opacity: 0.8 },
-  infoBox: { backgroundColor: '#20242D', padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#333', marginBottom: 20 },
-  infoTitle: { color: '#FFF', fontSize: 18, fontFamily: 'Inter-Bold', marginBottom: 10 },
-  infoSub: { color: '#888', fontSize: 12 },
-  optionLabel: { color: '#888', fontSize: 14, marginBottom: 15 },
-  optionRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E2229', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#333' },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#555', marginRight: 15, justifyContent: 'center', alignItems: 'center' },
-  radioInner: { width: 10, height: 10, borderRadius: 5 },
-  optionText: { color: '#FFF', fontSize: 14 },
-  btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 15 },
-  denyBtn: { flex: 1, height: 50, backgroundColor: '#3b1620', borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ef4444' },
-  allowBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#FFF', fontWeight: 'bold' }
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', borderRadius: 20, padding: 25, borderWidth: 1 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, gap: 10 },
+  modalHeaderTitle: { color: '#94a3b8', textTransform: 'uppercase' },
+  infoBox: { padding: 20, borderRadius: 15, borderWidth: 1, marginBottom: 25 },
+  infoTitle: { lineHeight: 22 },
+  infoSub: { lineHeight: 18 },
+  optionLabel: { color: '#64748b', textTransform: 'uppercase' },
+  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
+  radioInner: { width: 12, height: 12, borderRadius: 6 },
+  optionText: { fontSize: 14, fontWeight: '500' },
+  btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 30, gap: 15 },
+  denyBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  allowBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  btnText: { fontWeight: 'bold', fontSize: 14 }
 });

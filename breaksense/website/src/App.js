@@ -86,15 +86,21 @@ export default function App() {
     try {
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${student._id}`);
       setMessages(chatRes.data);
-
-      if (student.analyticsAccessStatus === 'granted') {
-        const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
-        setStudentStats(statsRes.data);
-      } else {
-        setStudentStats(null);
-      }
     } catch (e) { console.log("Error loading student data", e); }
   };
+
+  // Fetch stats when moving to stats view
+  useEffect(() => {
+    if (selectedStudent && view === 'stats' && selectedStudent.analyticsAccessStatus === 'granted') {
+      const fetchStats = async () => {
+        try {
+          const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
+          setStudentStats(statsRes.data);
+        } catch (e) { console.log("Stats fetch error", e); }
+      };
+      fetchStats();
+    }
+  }, [selectedStudent, view]);
 
   const requestAccess = async () => {
     try {
@@ -104,14 +110,29 @@ export default function App() {
     } catch (e) { console.log("Request access error", e); }
   };
 
-  // Auto-refresh chat every 5 seconds if a student is selected
+  // Auto-refresh chat and student list every 5 seconds
   useEffect(() => {
     let interval;
-    if (isLoggedIn && selectedStudent && view === 'chat') {
+    if (isLoggedIn) {
       interval = setInterval(async () => {
         try {
-           const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}`);
-           setMessages(chatRes.data);
+           // Always refresh students to keep access status updated
+           const studentRes = await axios.get(`${API_BASE_URL}/auth/students`);
+           const updatedStudents = studentRes.data;
+           setStudents(updatedStudents);
+
+           if (selectedStudent) {
+             const updatedSelected = updatedStudents.find(s => s._id === selectedStudent._id);
+             if (updatedSelected && updatedSelected.analyticsAccessStatus !== selectedStudent.analyticsAccessStatus) {
+               setSelectedStudent(updatedSelected);
+             }
+
+             // If a student is selected and we are in chat view, refresh messages
+             if (view === 'chat') {
+               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}`);
+               setMessages(chatRes.data);
+             }
+           }
         } catch (e) {}
       }, 5000);
     }
@@ -288,8 +309,8 @@ export default function App() {
                       CONSULTATION
                     </button>
                     <button
-                      onClick={() => setView('stats')}
-                      className={`px-6 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${view === 'stats' ? 'bg-[#00FF88] text-black shadow-lg shadow-[#00FF8833]' : theme.textMuted}`}
+                      onClick={() => setView('analytics_init')}
+                      className={`px-6 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${view !== 'chat' ? 'bg-[#00FF88] text-black shadow-lg shadow-[#00FF8833]' : theme.textMuted}`}
                     >
                       ANALYTICS
                     </button>

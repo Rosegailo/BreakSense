@@ -31,7 +31,9 @@ export default function ConsultationScreen() {
   useEffect(() => {
     fetchCounselorAndHistory();
     checkInitialAccess();
+  }, [user]);
 
+  useEffect(() => {
     // Auto-refresh chat and check for access requests every 5 seconds
     const interval = setInterval(() => {
       checkInitialAccess();
@@ -46,13 +48,15 @@ export default function ConsultationScreen() {
   }, [counselor]);
 
   const checkInitialAccess = async () => {
-    if (!user || !user.id) return;
+    const userId = user?.id || user?._id;
+    if (!userId) return;
     try {
-      const res = await axios.get(`${API_BASE_URL}/auth/profile/${user.id}`);
+      const res = await axios.get(`${API_BASE_URL}/auth/profile/${userId}`);
       if (res.data) {
         const me = res.data;
-        setAccessStatus(me.analyticsAccessStatus);
-        if (me.analyticsAccessStatus === 'pending') {
+        const status = me.analyticsAccessStatus || 'none';
+        setAccessStatus(status);
+        if (status === 'pending') {
           setShowAccessModal(true);
         }
       }
@@ -60,6 +64,7 @@ export default function ConsultationScreen() {
   };
 
   const handleRevokeAccess = async () => {
+    const userId = user?.id || user?._id;
     Alert.alert(
       "End Session?",
       "Stopping the sharing session will immediately hide your analytics from the counselor.",
@@ -70,17 +75,19 @@ export default function ConsultationScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId: user.id });
+              await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId });
 
               // Automated Message
-              await axios.post(`${API_BASE_URL}/messages/send`, {
-                senderId: user.id,
-                recipientId: counselor._id,
-                text: `🚫 System: Analytics access revoked by student.`
-              });
+              if (counselor) {
+                await axios.post(`${API_BASE_URL}/messages/send`, {
+                  senderId: userId,
+                  recipientId: counselor._id,
+                  text: `🚫 System: Analytics access revoked by student.`
+                });
+              }
 
               setAccessStatus('none');
-              loadHistory(counselor._id);
+              if (counselor) loadHistory(counselor._id);
               Alert.alert("Success", "Sharing session ended.");
             } catch (e) { Alert.alert("Error", "Could not end session."); }
           }
@@ -161,24 +168,27 @@ export default function ConsultationScreen() {
   };
 
   const handleAllowAccess = async () => {
+    const userId = user?.id || user?._id;
     try {
       await axios.put(`${API_BASE_URL}/auth/update-permissions`, {
-        userId: user.id,
+        userId,
         dataSharingPermission: sharingType,
         analyticsAccessStatus: 'granted'
       });
 
       // Automated Message
       const durationLabel = sharingType === '24hours' ? '24 hours' : '7 days';
-      await axios.post(`${API_BASE_URL}/messages/send`, {
-        senderId: user.id,
-        recipientId: counselor._id,
-        text: `🔒 System: Analytics access granted for ${durationLabel}.`
-      });
+      if (counselor) {
+        await axios.post(`${API_BASE_URL}/messages/send`, {
+          senderId: userId,
+          recipientId: counselor._id,
+          text: `🔒 System: Analytics access granted for ${durationLabel}.`
+        });
+      }
 
       setShowAccessModal(false);
       setAccessStatus('granted'); // Update state immediately
-      loadHistory(counselor._id);
+      if (counselor) loadHistory(counselor._id);
     } catch (e) { Alert.alert("Error", "Could not update permissions."); }
   };
 
@@ -253,14 +263,14 @@ export default function ConsultationScreen() {
         </Text>
       </View>
 
-      {accessStatus === 'granted' && (
-        <View style={[styles.activeSessionBanner, { backgroundColor: '#1C1F26', borderColor: '#2A2E37', borderBottomWidth: 1, borderTopWidth: 1, marginHorizontal: 0, borderRadius: 0 }]}>
-          <View style={{ flex: 1, paddingLeft: 20 }}>
-            <Text style={[styles.sessionTitle, { color: colors.accent, fontFamily: 'Inter-Bold', fontSize: 13 }]}>Analytics Sharing Active</Text>
-            <Text style={[styles.sessionSub, { color: '#64748b', fontFamily: 'Outfit', fontSize: 10, marginTop: 1 }]}>Counselor can view your session history.</Text>
+      {user?.role === 'student' && accessStatus === 'granted' && (
+        <View style={{ backgroundColor: '#1C1F26', borderBottomWidth: 1, borderBottomColor: '#2A2E37', flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.accent, fontFamily: 'Inter-Bold', fontSize: 13 }}>Analytics Sharing Active</Text>
+            <Text style={{ color: '#64748b', fontFamily: 'Outfit', fontSize: 10, marginTop: 1 }}>Counselor can view your session history.</Text>
           </View>
-          <TouchableOpacity onPress={handleRevokeAccess} style={[styles.endBtn, { backgroundColor: '#3b1620', borderColor: '#7f1d1d', marginRight: 20, height: 32, paddingHorizontal: 12 }]}>
-            <Text style={[styles.endBtnText, { color: '#ef4444', fontSize: 10, fontWeight: 'bold' }]}>End Session</Text>
+          <TouchableOpacity onPress={handleRevokeAccess} style={{ backgroundColor: '#3b1620', borderColor: '#7f1d1d', borderWidth: 1, borderRadius: 8, height: 32, paddingHorizontal: 12, justifyContent: 'center' }}>
+            <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold' }}>End Session</Text>
           </TouchableOpacity>
         </View>
       )}

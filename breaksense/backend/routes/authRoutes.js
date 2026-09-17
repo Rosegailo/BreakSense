@@ -160,6 +160,17 @@ router.put('/update-permissions', async (req, res) => {
     }
 });
 
+// --- GET PROFILE ---
+router.get('/profile/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // --- REVOKE ACCESS ---
 router.put('/revoke-access', async (req, res) => {
     try {

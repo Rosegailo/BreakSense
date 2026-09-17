@@ -26,6 +26,7 @@ export default function ConsultationScreen() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);
+  const [menuY, setMenuY] = useState(0);
 
   useEffect(() => {
     fetchCounselorAndHistory();
@@ -45,10 +46,11 @@ export default function ConsultationScreen() {
   }, [counselor]);
 
   const checkInitialAccess = async () => {
+    if (!user || !user.id) return;
     try {
-      const res = await axios.get(`${API_BASE_URL}/auth/students`);
-      const me = res.data.find(s => s._id === user.id);
-      if (me) {
+      const res = await axios.get(`${API_BASE_URL}/auth/profile/${user.id}`);
+      if (res.data) {
+        const me = res.data;
         setAccessStatus(me.analyticsAccessStatus);
         if (me.analyticsAccessStatus === 'pending') {
           setShowAccessModal(true);
@@ -130,9 +132,12 @@ export default function ConsultationScreen() {
     } catch (e) { console.log("Send error", e); }
   };
 
-  const handleLongPress = (msg) => {
-    if (msg.sender !== user.id) return; // Only allow actions on own messages
+  const handleDotsPress = (msg, event) => {
+    if (msg.sender !== user.id) return;
+    const { pageY } = event.nativeEvent;
     setSelectedMessage(msg);
+    // Align menu vertically with the click location, adjusting for menu height
+    setMenuY(Platform.OS === 'ios' ? pageY - 80 : pageY - 40);
     setShowMenu(true);
   };
 
@@ -172,6 +177,7 @@ export default function ConsultationScreen() {
       });
 
       setShowAccessModal(false);
+      setAccessStatus('granted'); // Update state immediately
       loadHistory(counselor._id);
     } catch (e) { Alert.alert("Error", "Could not update permissions."); }
   };
@@ -214,13 +220,13 @@ export default function ConsultationScreen() {
           {isMine && (
             <>
               <TouchableOpacity
-                onPress={() => handleLongPress(item)}
+                onPress={(e) => handleDotsPress(item, e)}
                 style={{ padding: 4 }}
               >
                 <Ionicons name="ellipsis-horizontal" size={16} color="#64748b" />
               </TouchableOpacity>
               <TouchableOpacity
-                onLongPress={() => handleLongPress(item)}
+                onLongPress={(e) => handleDotsPress(item, e)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.msgBox, { backgroundColor: colors.accent, borderBottomRightRadius: 2 }]}>
@@ -248,13 +254,13 @@ export default function ConsultationScreen() {
       </View>
 
       {accessStatus === 'granted' && (
-        <View style={[styles.activeSessionBanner, { backgroundColor: '#1A1D23', borderColor: colors.accent + '33' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sessionTitle, { color: colors.accent, fontFamily: 'Inter-Bold' }]}>Analytics Sharing Active</Text>
-            <Text style={[styles.sessionSub, { color: '#94a3b8', fontFamily: 'Inter' }]}>You have the ability to end this sharing session at any time.</Text>
+        <View style={[styles.activeSessionBanner, { backgroundColor: '#1C1F26', borderColor: '#2A2E37', borderBottomWidth: 1, borderTopWidth: 1, marginHorizontal: 0, borderRadius: 0 }]}>
+          <View style={{ flex: 1, paddingLeft: 20 }}>
+            <Text style={[styles.sessionTitle, { color: colors.accent, fontFamily: 'Inter-Bold', fontSize: 13 }]}>Analytics Sharing Active</Text>
+            <Text style={[styles.sessionSub, { color: '#64748b', fontFamily: 'Outfit', fontSize: 10, marginTop: 1 }]}>Counselor can view your session history.</Text>
           </View>
-          <TouchableOpacity onPress={handleRevokeAccess} style={[styles.endBtn, { backgroundColor: '#3b1620', borderColor: '#ef4444' }]}>
-            <Text style={[styles.endBtnText, { color: '#ef4444' }]}>End Session</Text>
+          <TouchableOpacity onPress={handleRevokeAccess} style={[styles.endBtn, { backgroundColor: '#3b1620', borderColor: '#7f1d1d', marginRight: 20, height: 32, paddingHorizontal: 12 }]}>
+            <Text style={[styles.endBtnText, { color: '#ef4444', fontSize: 10, fontWeight: 'bold' }]}>End Session</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -299,22 +305,37 @@ export default function ConsultationScreen() {
 
       {/* iMessage Style Action Menu */}
       <Modal visible={showMenu} transparent animationType="fade">
-        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
-           <View style={styles.menuContent}>
-              <View style={[styles.actionBox, { backgroundColor: '#1E2229', borderColor: '#2A2E37', width: 200 }]}>
-                 <TouchableOpacity style={styles.actionItem} onPress={startEdit}>
-                    <Text style={[styles.actionText, { color: '#FFF', fontFamily: 'Inter-Bold' }]}>Edit</Text>
-                 </TouchableOpacity>
-                 <View style={[styles.divider, { backgroundColor: '#2A2E37' }]} />
-                 <TouchableOpacity style={styles.actionItem} onPress={deleteMsg}>
-                    <Text style={[styles.actionText, { color: '#FF5C5C', fontFamily: 'Inter-Bold' }]}>Delete message</Text>
-                 </TouchableOpacity>
-                 <View style={[styles.divider, { backgroundColor: '#2A2E37' }]} />
-                 <TouchableOpacity style={styles.actionItem} onPress={copyToClipboard}>
-                    <Text style={[styles.actionText, { color: '#FFF', fontFamily: 'Inter-Bold' }]}>Copy</Text>
-                 </TouchableOpacity>
+        <Pressable style={[styles.menuOverlay, { backgroundColor: 'rgba(0,0,0,0.92)' }]} onPress={() => setShowMenu(false)}>
+           <View style={[styles.menuContent, { position: 'absolute', top: menuY - 40, width: '100%', paddingHorizontal: 20, alignItems: 'center' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 15 }}>
+                 {/* Light Grey Menu Box */}
+                 <View style={[styles.actionBox, { backgroundColor: '#B0B3B8', borderColor: 'transparent', width: 160, borderRadius: 18, overflow: 'hidden' }]}>
+                    <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={startEdit}>
+                       <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
+                    <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5, marginHorizontal: 0 }} />
+                    <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={deleteMsg}>
+                       <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Delete message</Text>
+                    </TouchableOpacity>
+                    <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5, marginHorizontal: 0 }} />
+                    <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={copyToClipboard}>
+                       <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Copy</Text>
+                    </TouchableOpacity>
+                 </View>
+
+                 {/* Dots */}
+                 <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', letterSpacing: 2 }}>...</Text>
+
+                 {/* Original Message Preview */}
+                 <View style={{ alignItems: 'flex-start' }}>
+                    <View style={[styles.msgBox, { backgroundColor: '#5D6373', borderBottomRightRadius: 2, paddingHorizontal: 25, paddingVertical: 15, borderRadius: 25, minWidth: 100 }]}>
+                      <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '500' }}>{selectedMessage?.text}</Text>
+                    </View>
+                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4, marginLeft: 5 }}>
+                       {selectedMessage?.createdAt ? new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </Text>
+                 </View>
               </View>
-              {/* Optional bubble indicator if needed, but the image is clean */}
            </View>
         </Pressable>
       </Modal>
@@ -388,8 +409,8 @@ const styles = StyleSheet.create({
   sendBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
 
   // Action Menu
-  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-  menuContent: { width: '85%', alignItems: 'flex-end' },
+  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  menuContent: { width: '90%', alignItems: 'flex-end' },
   selectedMsgPreview: { marginBottom: 15, maxWidth: '90%' },
   actionBox: { backgroundColor: '#20242D', width: 220, borderRadius: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#333' },
   actionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },

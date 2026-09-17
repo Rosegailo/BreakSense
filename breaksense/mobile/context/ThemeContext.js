@@ -13,14 +13,11 @@ export const ACCENT_COLORS = {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState('Dark');
-  const [accentName, setAccentName] = useState('Green');
 
   useEffect(() => {
     const loadTheme = async () => {
       const savedTheme = await AsyncStorage.getItem('user_theme');
-      const savedAccent = await AsyncStorage.getItem('user_accent');
       if (savedTheme) setThemeState(savedTheme);
-      if (savedAccent && ACCENT_COLORS[savedAccent]) setAccentName(savedAccent);
     };
     loadTheme();
   }, []);
@@ -28,13 +25,6 @@ export const ThemeProvider = ({ children }) => {
   const setTheme = async (newTheme) => {
     setThemeState(newTheme);
     await AsyncStorage.setItem('user_theme', newTheme);
-  };
-
-  const setAccent = async (name) => {
-    if (ACCENT_COLORS[name]) {
-      setAccentName(name);
-      await AsyncStorage.setItem('user_accent', name);
-    }
   };
 
   const isDark = theme === 'Dark';
@@ -45,13 +35,13 @@ export const ThemeProvider = ({ children }) => {
     border: isDark ? '#2a3342' : '#e2e8f0',
     textPrimary: isDark ? '#ffffff' : '#0f141e',
     textSecondary: '#64748b',
-    accent: ACCENT_COLORS[accentName],
+    accent: '#00FF88', // Original BreakSense Green
     segmentBg: isDark ? '#0f141e' : '#f8fafc',
     danger: '#ef4444',
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, accentName, setAccent, colors }}>
+    <ThemeContext.Provider value={{ theme, setTheme, colors }}>
       {children}
     </ThemeContext.Provider>
   );

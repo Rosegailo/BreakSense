@@ -17,7 +17,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function SettingsScreen({ navigation }) {
   const { user, setUser } = useUser();
-  const { theme, setTheme, accentName, setAccent, colors } = useTheme();
+  const { theme, setTheme, colors } = useTheme();
   const { clearTimerState } = useTimer();
 
   const panY = useRef(new Animated.Value(0)).current;
@@ -372,30 +372,6 @@ export default function SettingsScreen({ navigation }) {
                 {theme === 'Dark' && <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#000' }}>Dark</Text>}
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={[styles.itemRow, { marginTop: 25 }]}>
-            <View>
-              <Text style={[styles.itemLabel, { color: colors.textPrimary }]}>Accent Colour</Text>
-              <Text style={styles.itemSub}>Personalize the app highlights</Text>
-            </View>
-          </View>
-
-          <View style={styles.accentContainer}>
-            {['Green', 'Blue', 'Purple', 'Orange', 'Pink'].map((name) => {
-              const colorMap = { Green: '#39ef8d', Blue: '#3b82f6', Purple: '#a855f7', Orange: '#f97316', Pink: '#ec4899' };
-              return (
-                <TouchableOpacity
-                  key={name}
-                  style={[
-                    styles.accentCircle,
-                    { backgroundColor: colorMap[name] },
-                    accentName === name && { borderWidth: 3, borderColor: colors.textPrimary }
-                  ]}
-                  onPress={() => setAccent(name)}
-                />
-              );
-            })}
           </View>
         </View>
 

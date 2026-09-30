@@ -111,7 +111,7 @@ export default function App() {
     setView(targetView);
     setRequestSent(student.analyticsAccessStatus === 'pending');
     try {
-      const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${student._id}`);
+      const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
     } catch (e) { console.log("Error loading student data", e); }
   };
@@ -156,7 +156,7 @@ export default function App() {
 
              // If a student is selected and we are in chat view, refresh messages
              if (view === 'chat') {
-               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}`);
+               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}&requesterRole=counselor`);
                setMessages(chatRes.data);
              }
            }
@@ -192,7 +192,7 @@ export default function App() {
 
   const deleteMessage = async (msgId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/messages/delete/${msgId}`);
+      await axios.delete(`${API_BASE_URL}/messages/delete/${msgId}?role=counselor`);
       setMessages(messages.filter(m => m._id !== msgId));
       setMenuOpenId(null);
     } catch (e) { console.log("Delete error", e); }

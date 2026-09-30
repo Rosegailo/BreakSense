@@ -110,7 +110,7 @@ export default function ConsultationScreen() {
   const loadHistory = async (cId) => {
     if (!user || !user.id) return;
     try {
-      const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${cId}`);
+      const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${cId}&requesterRole=student`);
       setMessages(history.data);
     } catch (e) {}
   };
@@ -161,7 +161,7 @@ export default function ConsultationScreen() {
 
   const deleteMsg = async () => {
     try {
-      await axios.delete(`${API_BASE_URL}/messages/delete/${selectedMessage._id}`);
+      await axios.delete(`${API_BASE_URL}/messages/delete/${selectedMessage._id}?role=student`);
       setMessages(messages.filter(m => m._id !== selectedMessage._id));
       setShowMenu(false);
     } catch (e) { console.log("Delete error", e); }

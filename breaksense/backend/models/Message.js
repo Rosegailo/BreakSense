@@ -5,6 +5,8 @@ const messageSchema = new mongoose.Schema({
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     text: { type: String, required: true },
     isRead: { type: Boolean, default: false },
+    deletedByStudent: { type: Boolean, default: false },
+    deletedByCounselor: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 

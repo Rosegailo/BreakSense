@@ -89,6 +89,11 @@ router.delete('/reset-account/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         await Break.deleteMany({ user_id: userId });
+        // Mark all messages involving this student as deleted by student so they disappear on mobile, but remain for counselor history
+        await Message.updateMany(
+            { $or: [{ sender: userId }, { recipient: userId }] },
+            { $set: { deletedByStudent: true } }
+        );
         await User.findByIdAndUpdate(userId, {
             SessionsToday: 0,
             TotalStudyTimeToday: 0,

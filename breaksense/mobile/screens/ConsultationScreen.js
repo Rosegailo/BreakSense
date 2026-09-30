@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
-  SafeAreaView, KeyboardAvoidingView, Platform, Modal, Alert, Clipboard, Pressable
+  SafeAreaView, KeyboardAvoidingView, Platform, Modal, Alert, Clipboard, Pressable, Dimensions
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,8 @@ import { API_BASE_URL } from '../Config';
 import { useUser } from '../UserContext';
 import { useTheme } from '../context/ThemeContext';
 import Header from './components/Header';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function ConsultationScreen() {
   const navigation = useNavigation();
@@ -139,12 +141,14 @@ export default function ConsultationScreen() {
     } catch (e) { console.log("Send error", e); }
   };
 
-  const handleDotsPress = (msg, event) => {
-    if (msg.sender !== user.id) return;
+  const handleLongPress = (msg, event) => {
     const { pageY } = event.nativeEvent;
     setSelectedMessage(msg);
-    // Align menu vertically with the click location, adjusting for menu height
-    setMenuY(Platform.OS === 'ios' ? pageY - 80 : pageY - 40);
+    // Align menu vertically with touch location
+    let topPos = pageY ? pageY - 60 : 200;
+    if (topPos < 80) topPos = 80;
+    if (topPos > SCREEN_HEIGHT - 220) topPos = SCREEN_HEIGHT - 220;
+    setMenuY(topPos);
     setShowMenu(true);
   };
 
@@ -220,32 +224,19 @@ export default function ConsultationScreen() {
 
     return (
       <View style={[styles.msgContainer, isMine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {!isMine && (
-             <View style={[styles.msgBox, { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 }]}>
-                <Text style={[styles.msgText, { color: '#FFF' }]}>{item.text}</Text>
-             </View>
-          )}
-
-          {isMine && (
-            <>
-              <TouchableOpacity
-                onPress={(e) => handleDotsPress(item, e)}
-                style={{ padding: 4 }}
-              >
-                <Ionicons name="ellipsis-horizontal" size={16} color="#64748b" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onLongPress={(e) => handleDotsPress(item, e)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.msgBox, { backgroundColor: colors.accent, borderBottomRightRadius: 2 }]}>
-                  <Text style={[styles.msgText, { color: '#000' }]}>{item.text}</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        <TouchableOpacity
+          onLongPress={(e) => handleLongPress(item, e)}
+          activeOpacity={0.8}
+        >
+          <View style={[
+            styles.msgBox,
+            isMine
+              ? { backgroundColor: colors.accent, borderBottomRightRadius: 2 }
+              : { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 }
+          ]}>
+            <Text style={[styles.msgText, { color: isMine ? '#000' : '#FFF' }]}>{item.text}</Text>
+          </View>
+        </TouchableOpacity>
         <Text style={[styles.msgTime, isMine ? { alignSelf: 'flex-end', marginRight: 0 } : { alignSelf: 'flex-start' }]}>{time}</Text>
       </View>
     );
@@ -315,33 +306,42 @@ export default function ConsultationScreen() {
 
       {/* iMessage Style Action Menu */}
       <Modal visible={showMenu} transparent animationType="fade">
-        <Pressable style={[styles.menuOverlay, { backgroundColor: 'rgba(0,0,0,0.92)' }]} onPress={() => setShowMenu(false)}>
-           <View style={[styles.menuContent, { position: 'absolute', top: menuY - 40, width: '100%', paddingHorizontal: 20, alignItems: 'center' }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 15 }}>
-                 {/* Light Grey Menu Box */}
-                 <View style={[styles.actionBox, { backgroundColor: '#B0B3B8', borderColor: 'transparent', width: 160, borderRadius: 18, overflow: 'hidden' }]}>
-                    <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={startEdit}>
-                       <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Edit</Text>
-                    </TouchableOpacity>
-                    <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5, marginHorizontal: 0 }} />
-                    <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={deleteMsg}>
-                       <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Delete message</Text>
-                    </TouchableOpacity>
-                    <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5, marginHorizontal: 0 }} />
+        <Pressable style={[styles.menuOverlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]} onPress={() => setShowMenu(false)}>
+           <View style={[styles.menuContent, { position: 'absolute', top: menuY, width: '100%', paddingHorizontal: 20 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: selectedMessage?.sender === user?.id ? 'flex-end' : 'flex-start', gap: 12 }}>
+                 {/* Action Menu Box */}
+                 <View style={[styles.actionBox, { backgroundColor: '#B0B3B8', borderColor: 'transparent', width: 150, borderRadius: 18, overflow: 'hidden' }]}>
+                    {selectedMessage?.sender === user?.id && (
+                      <>
+                        <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={startEdit}>
+                           <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                        </TouchableOpacity>
+                        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5 }} />
+                        <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={deleteMsg}>
+                           <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Delete message</Text>
+                        </TouchableOpacity>
+                        <View style={{ height: 1, backgroundColor: '#FFF', opacity: 0.5 }} />
+                      </>
+                    )}
                     <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={copyToClipboard}>
                        <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Copy</Text>
                     </TouchableOpacity>
                  </View>
 
-                 {/* Dots */}
-                 <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', letterSpacing: 2 }}>...</Text>
-
-                 {/* Original Message Preview */}
-                 <View style={{ alignItems: 'flex-start' }}>
-                    <View style={[styles.msgBox, { backgroundColor: '#5D6373', borderBottomRightRadius: 2, paddingHorizontal: 25, paddingVertical: 15, borderRadius: 25, minWidth: 100 }]}>
-                      <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '500' }}>{selectedMessage?.text}</Text>
+                 {/* Selected Message Bubble Preview */}
+                 <View style={{ maxWidth: '60%' }}>
+                    <View style={[
+                      styles.msgBox,
+                      selectedMessage?.sender === user?.id
+                        ? { backgroundColor: colors.accent, borderBottomRightRadius: 2 }
+                        : { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 },
+                      { paddingHorizontal: 16, paddingVertical: 10 }
+                    ]}>
+                      <Text style={{ color: selectedMessage?.sender === user?.id ? '#000' : '#FFF', fontSize: 15, fontWeight: '500' }}>
+                        {selectedMessage?.text}
+                      </Text>
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4, marginLeft: 5 }}>
+                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4, alignSelf: selectedMessage?.sender === user?.id ? 'flex-end' : 'flex-start' }}>
                        {selectedMessage?.createdAt ? new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </Text>
                  </View>

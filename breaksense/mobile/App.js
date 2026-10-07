@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +29,9 @@ import LibraryScreen from './screens/LibraryScreen';
 import StatsScreen from './screens/StatsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ConsultationScreen from './screens/ConsultationScreen';
+import GlobalSystemHandler from './screens/components/GlobalSystemHandler';
+
+export const navigationRef = createNavigationContainerRef();
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -227,7 +230,8 @@ export default function App() {
       <TimerProvider>
         <UserContext.Provider value={{ user, setUser }}>
           <StatusBar style="auto" />
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef}>
+            {user && <GlobalSystemHandler navigationRef={navigationRef} />}
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               {user ? (
                 <>

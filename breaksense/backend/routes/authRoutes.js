@@ -122,9 +122,23 @@ router.get('/students', async (req, res) => {
         // Find all students and include stats, sharing permissions, and access status
         const students = await User.find(
             { role: 'student' },
-            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus'
+            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus riskLevel'
         );
         res.json(students);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// --- UPDATE RISK LEVEL (For Counselors) ---
+router.put('/update-risk-level', async (req, res) => {
+    try {
+        const { userId, riskLevel } = req.body;
+        if (!['WATCH LIST', 'STABLE', 'HIGH RISK'].includes(riskLevel)) {
+            return res.status(400).json({ success: false, message: "Invalid risk level." });
+        }
+        const updatedUser = await User.findByIdAndUpdate(userId, { riskLevel }, { new: true });
+        res.json({ success: true, message: "Risk level updated.", riskLevel: updatedUser.riskLevel });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

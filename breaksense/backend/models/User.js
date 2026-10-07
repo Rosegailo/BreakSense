@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     TotalStudyTimeToday: { type: Number, default: 0 },
     DayStreak: { type: Number, default: 0 },
     LastStudyDate: { type: Date, default: null },
+    riskLevel: { type: String, enum: ['WATCH LIST', 'STABLE', 'HIGH RISK'], default: null },
 
     // Settings
     pomodoro_duration: { type: String, default: '25 min' },

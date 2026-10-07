@@ -20,8 +20,6 @@ export default function ConsultationScreen() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [counselor, setCounselor] = useState(null);
-  const [showAccessModal, setShowAccessModal] = useState(false);
-  const [sharingType, setSharingType] = useState('none');
   const [accessStatus, setAccessStatus] = useState('none'); // 'granted', 'pending', 'denied', 'none'
 
   // Message Menu State
@@ -36,7 +34,7 @@ export default function ConsultationScreen() {
   }, [user]);
 
   useEffect(() => {
-    // Auto-refresh chat and check for access requests every 5 seconds
+    // Auto-refresh chat and check for access status every 5 seconds
     const interval = setInterval(() => {
       checkInitialAccess();
       if (counselor) {
@@ -58,9 +56,6 @@ export default function ConsultationScreen() {
         const me = res.data;
         const status = me.analyticsAccessStatus || 'none';
         setAccessStatus(status);
-        if (status === 'pending') {
-          setShowAccessModal(true);
-        }
       }
     } catch (e) { console.log("Permission check error", e); }
   };
@@ -169,42 +164,6 @@ export default function ConsultationScreen() {
       setMessages(messages.filter(m => m._id !== selectedMessage._id));
       setShowMenu(false);
     } catch (e) { console.log("Delete error", e); }
-  };
-
-  const handleAllowAccess = async () => {
-    const userId = user?.id || user?._id;
-    try {
-      await axios.put(`${API_BASE_URL}/auth/update-permissions`, {
-        userId,
-        dataSharingPermission: sharingType,
-        analyticsAccessStatus: 'granted'
-      });
-
-      // Automated Message
-      const durationLabel = sharingType === '24hours' ? '24 hours' : '7 days';
-      if (counselor) {
-        await axios.post(`${API_BASE_URL}/messages/send`, {
-          senderId: userId,
-          recipientId: counselor._id,
-          text: `🔒 System: Analytics access granted for ${durationLabel}.`
-        });
-      }
-
-      setShowAccessModal(false);
-      setAccessStatus('granted'); // Update state immediately
-      if (counselor) loadHistory(counselor._id);
-    } catch (e) { Alert.alert("Error", "Could not update permissions."); }
-  };
-
-  const handleDenyAccess = async () => {
-    try {
-      await axios.put(`${API_BASE_URL}/auth/update-permissions`, {
-        userId: user.id,
-        dataSharingPermission: 'none',
-        analyticsAccessStatus: 'denied'
-      });
-      setShowAccessModal(false);
-    } catch (e) { setShowAccessModal(false); }
   };
 
   const renderMessage = ({ item }) => {
@@ -349,50 +308,6 @@ export default function ConsultationScreen() {
            </View>
         </Pressable>
       </Modal>
-
-      {/* Access Request Modal */}
-      <Modal visible={showAccessModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: '#1A1D23', borderColor: '#2A2E37' }]}>
-            <View style={styles.modalHeader}>
-               <Ionicons name="lock-closed-outline" size={18} color="#94a3b8" />
-               <Text style={[styles.modalHeaderTitle, { fontFamily: 'JetBrains', fontSize: 13, letterSpacing: 1 }]}>System. Access Request</Text>
-            </View>
-
-            <View style={[styles.infoBox, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)' }]}>
-               <Text style={[styles.infoTitle, { color: '#FFF', fontSize: 16, fontFamily: 'Outfit' }]}>Your counselor wants to view your break history and analytics.</Text>
-               <Text style={[styles.infoSub, { color: '#64748b', fontSize: 12, marginTop: 8 }]}>This lets them see your session activity and recovery patterns</Text>
-            </View>
-
-            <Text style={[styles.optionLabel, { fontFamily: 'JetBrains', fontSize: 11, letterSpacing: 1.5, marginBottom: 20 }]}>Choose how long to share</Text>
-
-            {[
-              { id: '24hours', label: 'Allow for 24 hours' },
-              { id: '7days', label: 'Allow for 7 days' }
-            ].map(opt => (
-              <TouchableOpacity
-                key={opt.id}
-                onPress={() => setSharingType(opt.id)}
-                style={[styles.optionRow, { backgroundColor: 'transparent', borderColor: sharingType === opt.id ? colors.accent : '#2A2E37' }]}
-              >
-                <View style={[styles.radio, { borderColor: sharingType === opt.id ? colors.accent : '#555' }]}>
-                  {sharingType === opt.id && <View style={[styles.radioInner, { backgroundColor: colors.accent }]} />}
-                </View>
-                <Text style={[styles.optionText, { color: sharingType === opt.id ? '#FFF' : '#94a3b8' }]}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <View style={styles.btnRow}>
-              <TouchableOpacity onPress={handleDenyAccess} style={[styles.denyBtn, { backgroundColor: '#3b1620', borderColor: '#7f1d1d' }]}>
-                <Text style={[styles.btnText, { color: '#ef4444' }]}>Deny</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleAllowAccess} style={[styles.allowBtn, { backgroundColor: '#14532d', borderColor: '#166534' }]}>
-                <Text style={[styles.btnText, { color: '#22c55e' }]}>Allow Access</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -426,22 +341,4 @@ const styles = StyleSheet.create({
   actionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
   actionText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
   divider: { height: 1, backgroundColor: '#333' },
-
-  // Privacy Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '90%', borderRadius: 20, padding: 25, borderWidth: 1 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, gap: 10 },
-  modalHeaderTitle: { color: '#94a3b8', textTransform: 'uppercase' },
-  infoBox: { padding: 20, borderRadius: 15, borderWidth: 1, marginBottom: 25 },
-  infoTitle: { lineHeight: 22 },
-  infoSub: { lineHeight: 18 },
-  optionLabel: { color: '#64748b', textTransform: 'uppercase' },
-  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
-  radioInner: { width: 12, height: 12, borderRadius: 6 },
-  optionText: { fontSize: 14, fontWeight: '500' },
-  btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 30, gap: 15 },
-  denyBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
-  allowBtn: { flex: 1, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
-  btnText: { fontWeight: 'bold', fontSize: 14 }
 });

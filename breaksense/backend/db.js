@@ -2,12 +2,15 @@ const mongoose = require('mongoose');
 const dns = require('dns');
 require('dotenv').config();
 
-// Force Node.js to prioritize IPv4 and use public DNS for SRV resolution
-// This fixes the "querySrv ECONNREFUSED" error common on Windows
+// Ensure Google DNS is used for SRV record resolution on Windows
 if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
 }
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (dnsErr) {
+    console.warn("⚠️ Custom DNS servers could not be set, using default DNS.");
+}
 
 const connectDB = async () => {
     try {
@@ -21,12 +24,15 @@ const connectDB = async () => {
         uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
 
         const conn = await mongoose.connect(uri, {
-            serverSelectionTimeoutMS: 5000,
-            family: 4 // Force IPv4
+            serverSelectionTimeoutMS: 15000
         });
         console.log(`🚀 MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
         console.error(`❌ Connection Error: ${error.message}`);
+        console.error(`💡 Common Fixes:`);
+        console.error(`   1. Add your IP address to MongoDB Atlas Network Access (0.0.0.0/0)`);
+        console.error(`   2. Verify database username and password in .env file`);
+        console.error(`   3. Check your internet connection or firewall/VPN blocking port 27017`);
         process.exit(1);
     }
 };

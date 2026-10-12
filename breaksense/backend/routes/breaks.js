@@ -121,22 +121,22 @@ router.get('/stats', async (req, res) => {
         let researchCitation = "";
 
         if (stats.totalBreaks === 0) {
-            actionableAdvice = "No recovery breaks recorded yet. Research on brief diversions (Ariga & Lleras, 2011, Cognition) suggests short breaks can help sustain attention on long tasks. Consider scheduling a short break every 25-30 minutes and logging it.";
+            actionableAdvice = "No recovery breaks recorded yet. In a lab study, two brief breaks kept participants' performance from dropping over a 50-minute task (Ariga & Lleras, 2011, Cognition). Consider scheduling short breaks during long study sessions, for example every 25-30 minutes, and logging them.";
             researchCitation = "Ariga & Lleras (2011), Cognition";
         } else if (avgScoreVal < 3.0) {
-            actionableAdvice = `Average refresh score is low (${avgScoreVal.toFixed(1)}/5.0). Mental fatigue can raise perceived effort on later tasks (Marcora et al., 2009, J Appl Physiol). Try a different break type, such as a short walk, and track whether ratings improve.`;
+            actionableAdvice = `Average refresh score is low (${avgScoreVal.toFixed(1)}/5.0). Mental fatigue has been linked to higher perceived effort on a later physical task (Marcora et al., 2009, J Appl Physiol). Try a different break type, such as a short walk, and track whether your ratings improve.`;
             researchCitation = "Marcora et al. (2009), Journal of Applied Physiology";
         } else if (topCat.toLowerCase().includes('physical') || topCat.toLowerCase().includes('move')) {
-            actionableAdvice = `Student relies mainly on physical movement (${stats.counts['Physical Movement']} breaks). Lunchtime park walks were linked to better recovery from work strain (Sianoja et al., 2018, J Occup Health Psychol). Encourage active breaks between heavy study blocks.`;
-            researchCitation = "Sianoja et al. (2018), Journal of Occupational Health Psychology";
+            actionableAdvice = `Student relies mainly on physical movement (${stats.counts['Physical Movement']} breaks). In two randomized trials of 15-minute lunchtime park walks, restoration rose and fatigue fell, most clearly in the fall trial (de Bloom et al., 2017, J Environ Psychol). Encourage light walks between heavy study blocks.`;
+            researchCitation = "de Bloom et al. (2017), Journal of Environmental Psychology";
         } else if (topCat.toLowerCase().includes('mind')) {
-            actionableAdvice = `Student favors mindfulness (${stats.counts['Mindfulness']} breaks). Mindfulness training has been linked to less mind-wandering and better reading comprehension and working memory (Mrazek et al., 2013, Psychol Sci). Note that this was multi-week training, not single breaks.`;
-            researchCitation = "Mrazek et al. (2013), Psychological Science";
+            actionableAdvice = `Student favors mindfulness (${stats.counts['Mindfulness']} breaks). Lunchtime relaxation exercises (muscle relaxation, deep breathing, nonjudgmental attention) were linked to lower end-of-day stress and fatigue and better afternoon concentration compared with regular lunch breaks (Sianoja et al., 2018, J Occup Health Psychol).`;
+            researchCitation = "Sianoja et al. (2018), Journal of Occupational Health Psychology";
         } else if (topCat.toLowerCase().includes('nutrition')) {
-            actionableAdvice = `Student's top recovery category is Nutrition & Hydration (${stats.counts['Nutrition']} breaks). Mild dehydration (~1.5%) has been linked to worse mood and concentration (Ganio et al., 2011, Br J Nutr; Armstrong et al., 2012, J Nutr). Encourage drinking water during breaks.`;
-            researchCitation = "Ganio et al. (2011), British Journal of Nutrition & Armstrong et al. (2012)";
+            actionableAdvice = `Student's top recovery category is Nutrition & Hydration (${stats.counts['Nutrition']} breaks). Mild dehydration (~1.5% body mass loss) was linked to more vigilance errors and slower working memory responses in young men (Ganio et al., 2011, Br J Nutr) and to worse mood and higher perceived task difficulty in young women (Armstrong et al., 2012, J Nutr). Consider drinking water during breaks.`;
+            researchCitation = "Ganio et al. (2011) & Armstrong et al. (2012)";
         } else {
-            actionableAdvice = `Student relies on Rest & Recovery (${stats.counts['Rest & Recovery']} breaks). Research on brief diversions (Ariga & Lleras, 2011, Cognition) suggests short breaks help eliminate attentional fatigue. Suggest pairing passive rest with visual disengagement (20-20-20 rule).`;
+            actionableAdvice = `Student relies on Rest & Recovery (${stats.counts['Rest & Recovery']} breaks). In a lab study, two brief breaks kept participants' performance from dropping over a 50-minute task (Ariga & Lleras, 2011, Cognition). Suggest pairing passive rest with visual disengagement (20-20-20 rule).`;
             researchCitation = "Ariga & Lleras (2011), Cognition";
         }
 

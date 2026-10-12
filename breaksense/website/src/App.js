@@ -652,6 +652,11 @@ export default function App() {
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'granted' && (view === 'stats' || (view !== 'chat' && viewedStudents[selectedStudent._id])) ? (
                 <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
+                  {/* Student Name Header */}
+                  <h2 className="text-3xl font-black text-white tracking-tight capitalize flex-none">
+                    {selectedStudent.first_name} {selectedStudent.last_name}
+                  </h2>
+
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-5 flex-none">
                     <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>
@@ -674,39 +679,38 @@ export default function App() {
 
                   {/* Bottom Cards Grid */}
                   <div className="grid grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
-                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-3 flex items-center gap-2.5 flex-none leading-relaxed`}>
-                          <BarChart2 size={16} className={theme.textMuted} />
+                    <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
+                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                          <BarChart2 size={18} className={theme.textMuted} />
                           BREAK PREFERENCES
                        </h3>
                        <div className="flex-1 w-full min-h-0">
                           <ResponsiveContainer width="100%" height="100%">
                              <BarChart data={catData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
-                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#2A2E37" : "#E9ECEF"} />
+                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#282C3B" : "#E9ECEF"} />
                                <XAxis dataKey="name" interval={0} fontSize={11} fontWeight="700" axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#E5E7EB' : '#374151'}} dy={12} />
                                <YAxis axisLine={false} tickLine={false} hide />
-                               <Tooltip cursor={{fill: isDarkMode ? '#20242D' : '#F1F3F5'}} contentStyle={{backgroundColor: isDarkMode ? '#1A1D23' : '#FFF', borderRadius: '15px', border: `1px solid ${isDarkMode ? '#2A2E37' : '#E9ECEF'}`, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)'}} />
+                               <Tooltip cursor={{fill: isDarkMode ? '#20242D' : '#F1F3F5'}} contentStyle={{backgroundColor: isDarkMode ? '#1A1D23' : '#FFF', borderRadius: '15px', border: `1px solid ${isDarkMode ? '#282C3B' : '#E9ECEF'}`, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)'}} />
                                <Bar dataKey="value" fill="#1A7A4D" radius={[6, 6, 0, 0]} barSize={45} />
                              </BarChart>
                           </ResponsiveContainer>
                        </div>
                     </div>
 
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col h-fit overflow-hidden`}>
-                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-3 flex items-center gap-2.5 flex-none leading-relaxed`}>
-                          <TrendingUp size={16} className={theme.textMuted} />
+                    <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
+                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                          <TrendingUp size={18} className={theme.textMuted} />
                           COUNSELOR SUMMARY
                        </h3>
-                       <div className="flex flex-col justify-start gap-4 min-h-0">
-                          <div className={`h-fit p-5 ${theme.cardLighter} border-l-4 border-[#00FF88] rounded-xl flex flex-col justify-start`}>
-                             <p className="text-[#00FF88] text-lg font-extrabold mb-2 uppercase tracking-wider leading-relaxed">MOST USED RECOVERY</p>
-                             <p className="text-white text-base font-semibold leading-relaxed uppercase tracking-tight">{studentStats?.topCategory || 'NONE'}</p>
+                       <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
+                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                             <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
+                             <p className="text-white text-sm font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>
                           </div>
-                          <div className={`h-fit p-5 ${theme.cardLighter} border-l-4 border-[#0066FF] rounded-xl flex flex-col justify-start`}>
-                             <p className="text-[#00FF88] text-lg font-extrabold mb-2 uppercase tracking-wider leading-relaxed">ACTIONABLE ADVICE</p>
-                             <p className="text-white text-base font-semibold leading-relaxed">
-                                The student has a recovery score of {studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer {studentStats?.topCategory || 'None'}.
-                                Consider suggesting more physical movement if fatigue levels rise.
+                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                             <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">ACTIONABLE ADVICE</p>
+                             <p className="text-xs text-gray-200 font-medium leading-relaxed">
+                                {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting more physical movement if fatigue levels rise.`}
                              </p>
                           </div>
                        </div>

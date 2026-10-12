@@ -119,24 +119,45 @@ router.get('/counselors', async (req, res) => {
 // --- GET ALL STUDENTS (For Counselor Dashboard) ---
 router.get('/students', async (req, res) => {
     try {
-        // Find all students and include stats, sharing permissions, and access status
+        // Find all students and include stats, sharing permissions, access status, and creation date
         const students = await User.find(
             { role: 'student' },
-            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus permissionExpiry riskLevel'
-        );
+            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus permissionExpiry riskLevel createdAt'
+        ).sort({ createdAt: -1 });
 
-        // Auto-expire time-limited permissions if expired
         const now = new Date();
+        const studentList = [];
+
         for (let s of students) {
+            // Auto-expire time-limited permissions if expired
             if (s.permissionExpiry && now > new Date(s.permissionExpiry)) {
                 s.analyticsAccessStatus = 'none';
                 s.dataSharingPermission = 'none';
                 s.permissionExpiry = null;
                 await s.save();
             }
+
+            const studentObj = s.toObject();
+
+            // Find latest message sent by this student
+            const latestMsg = await Message.findOne({ sender: s._id }).sort({ createdAt: -1 });
+            studentObj.lastMessageTime = latestMsg && latestMsg.createdAt ? new Date(latestMsg.createdAt).getTime() : 0;
+
+            studentList.push(studentObj);
         }
 
-        res.json(students);
+        // Sort students: Most recent message timestamp first, then newest account registration date
+        studentList.sort((a, b) => {
+            const timeA = a.lastMessageTime || 0;
+            const timeB = b.lastMessageTime || 0;
+            if (timeA !== timeB) return timeB - timeA;
+
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+
+        res.json(studentList);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

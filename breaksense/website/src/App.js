@@ -385,6 +385,21 @@ export default function App() {
   const counts = studentStats?.categoryCounts ? { ...defaultCategories, ...studentStats.categoryCounts } : defaultCategories;
   const catData = Object.entries(counts).map(([name, value]) => ({ name, value }));
 
+  // Sort students: Unread messages & recent message timestamps first, then newly registered accounts
+  const sortedStudents = [...students].sort((a, b) => {
+    const unreadA = unreadStudentIds[a._id] ? 1 : 0;
+    const unreadB = unreadStudentIds[b._id] ? 1 : 0;
+    if (unreadA !== unreadB) return unreadB - unreadA;
+
+    const timeA = a.lastMessageTime || 0;
+    const timeB = b.lastMessageTime || 0;
+    if (timeA !== timeB) return timeB - timeA;
+
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+
   return (
     <div className={`h-screen ${theme.bg} flex ${theme.text} font-sans overflow-hidden transition-colors duration-300`}>
       {/* Sidebar - Fixed 240px width (w-60) */}
@@ -398,7 +413,7 @@ export default function App() {
           <div>
             <p className={`text-xs font-bold ${theme.textMuted} uppercase tracking-[0.15em] mb-3 px-1`}>STUDENT DIRECTORY</p>
             <div className="space-y-2">
-              {students.map(s => (
+              {sortedStudents.map(s => (
                 <button
                   key={s._id}
                   onClick={() => loadStudentData(s)}

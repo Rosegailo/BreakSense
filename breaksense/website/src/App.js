@@ -191,7 +191,8 @@ export default function App() {
     setRequestSent(student.analyticsAccessStatus === 'pending');
     setUnreadStudentIds(prev => ({ ...prev, [student._id]: false }));
     try {
-      const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${student._id}&requesterRole=counselor`);
+      const cId = counselor?.id || counselor?._id;
+      const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
     } catch (e) { console.log("Error loading student data", e); }
   };
@@ -218,10 +219,11 @@ export default function App() {
     } catch (e) { console.log("Request access error", e); }
   };
 
-  // Auto-refresh chat, student list, and check for new student messages every 4 seconds
+  // Auto-refresh chat, student list, and check for new student messages every 3 seconds
   useEffect(() => {
     let interval;
-    if (isLoggedIn && counselor) {
+    const cId = counselor?.id || counselor?._id;
+    if (isLoggedIn && cId) {
       interval = setInterval(async () => {
         try {
            // Always refresh students to keep access status updated
@@ -239,7 +241,7 @@ export default function App() {
 
              // If a student is selected and we are in chat view, refresh messages
              if (view === 'chat') {
-               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}&requesterRole=counselor`).catch(() => null);
+               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${selectedStudent._id}&requesterRole=counselor`).catch(() => null);
                if (chatRes && chatRes.data) {
                  const history = chatRes.data || [];
                  if (history.length > 0) {
@@ -273,13 +275,14 @@ export default function App() {
              isInitialWebLoadRef.current = false;
            }
         } catch (e) {}
-      }, 4000);
+      }, 3000);
     }
     return () => clearInterval(interval);
   }, [selectedStudent, isLoggedIn, counselor, view]);
 
   const sendMessage = async () => {
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || !selectedStudent) return;
+    const cId = counselor?.id || counselor?._id;
 
     if (editingMessageId) {
       try {
@@ -293,7 +296,7 @@ export default function App() {
 
     try {
       const res = await axios.post(`${API_BASE_URL}/messages/send`, {
-        senderId: counselor.id,
+        senderId: cId,
         recipientId: selectedStudent._id,
         text: replyText
       });

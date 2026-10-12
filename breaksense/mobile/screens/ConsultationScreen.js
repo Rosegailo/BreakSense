@@ -104,16 +104,20 @@ export default function ConsultationScreen() {
     } catch (e) { console.log("Chat load error", e); }
   };
 
+  const currentUserId = user?.id || user?._id;
+
   const loadHistory = async (cId) => {
-    if (!user || !user.id) return;
+    if (!currentUserId || !cId) return;
     try {
-      const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${user.id}&user2=${cId}&requesterRole=student`);
-      setMessages(history.data);
+      const history = await axios.get(`${API_BASE_URL}/messages/history?user1=${currentUserId}&user2=${cId}&requesterRole=student`).catch(() => null);
+      if (history && history.data) {
+        setMessages(history.data);
+      }
     } catch (e) {}
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !counselor || !user || !user.id) return;
+    if (!inputText.trim() || !counselor || !currentUserId) return;
 
     if (editingMessageId) {
       try {
@@ -127,7 +131,7 @@ export default function ConsultationScreen() {
 
     try {
       const res = await axios.post(`${API_BASE_URL}/messages/send`, {
-        senderId: user.id,
+        senderId: currentUserId,
         recipientId: counselor._id,
         text: inputText
       });
@@ -167,7 +171,7 @@ export default function ConsultationScreen() {
   };
 
   const renderMessage = ({ item }) => {
-    const isMine = item.sender === user.id;
+    const isMine = item.sender === currentUserId;
     const isSystem = item.text.includes('System:');
     const time = item.createdAt
       ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

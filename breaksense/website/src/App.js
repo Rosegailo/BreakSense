@@ -225,7 +225,9 @@ export default function App() {
       interval = setInterval(async () => {
         try {
            // Always refresh students to keep access status updated
-           const studentRes = await axios.get(`${API_BASE_URL}/auth/students`);
+           const studentRes = await axios.get(`${API_BASE_URL}/auth/students`).catch(() => null);
+           if (!studentRes || !studentRes.data) return;
+
            const updatedStudents = studentRes.data || [];
            setStudents(updatedStudents);
 
@@ -237,43 +239,34 @@ export default function App() {
 
              // If a student is selected and we are in chat view, refresh messages
              if (view === 'chat') {
-               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}&requesterRole=counselor`);
-               setMessages(chatRes.data);
-             }
-           }
+               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${selectedStudent._id}&requesterRole=counselor`).catch(() => null);
+               if (chatRes && chatRes.data) {
+                 const history = chatRes.data || [];
+                 if (history.length > 0) {
+                   const latestMsg = history[history.length - 1];
+                   const prevMsgId = lastMessageIdsRef.current[selectedStudent._id];
 
-           // Check for new incoming messages across all students for counselor notifications
-           for (const s of updatedStudents) {
-             try {
-               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${counselor.id}&user2=${s._id}&requesterRole=counselor`);
-               const history = chatRes.data || [];
-               if (history.length > 0) {
-                 const latestMsg = history[history.length - 1];
-                 const prevMsgId = lastMessageIdsRef.current[s._id];
+                   if (isInitialWebLoadRef.current) {
+                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
+                   } else if (
+                     latestMsg._id !== prevMsgId &&
+                     latestMsg.sender === selectedStudent._id &&
+                     !latestMsg.text.includes('System:')
+                   ) {
+                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
+                     playNotificationSound();
+                     setWebToast({ student: selectedStudent, text: latestMsg.text });
 
-                 if (isInitialWebLoadRef.current) {
-                   lastMessageIdsRef.current[s._id] = latestMsg._id;
-                 } else if (
-                   latestMsg._id !== prevMsgId &&
-                   latestMsg.sender === s._id &&
-                   !latestMsg.text.includes('System:')
-                 ) {
-                   lastMessageIdsRef.current[s._id] = latestMsg._id;
-                   playNotificationSound();
-                   setWebToast({ student: s, text: latestMsg.text });
-
-                   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                     new Notification(`New Message from ${s.first_name}`, { body: latestMsg.text });
+                     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                       new Notification(`New Message from ${selectedStudent.first_name}`, { body: latestMsg.text });
+                     }
+                   } else {
+                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
                    }
-
-                   if (!selectedStudent || selectedStudent._id !== s._id || view !== 'chat') {
-                     setUnreadStudentIds(prev => ({ ...prev, [s._id]: true }));
-                   }
-                 } else {
-                   lastMessageIdsRef.current[s._id] = latestMsg._id;
                  }
+                 setMessages(history);
                }
-             } catch (err) {}
+             }
            }
 
            if (isInitialWebLoadRef.current) {

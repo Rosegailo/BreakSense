@@ -57,33 +57,38 @@ export default function GlobalSystemHandler({ navigationRef }) {
     const checkSystemState = async () => {
       try {
         // A. Check Access Permission Status
-        const profileRes = await axios.get(`${API_BASE_URL}/auth/profile/${userId}`);
-        if (profileRes.data && profileRes.data.analyticsAccessStatus === 'pending') {
-          setShowAccessModal(true);
-        } else {
-          setShowAccessModal(false);
+        const profileRes = await axios.get(`${API_BASE_URL}/auth/profile/${userId}`).catch(() => null);
+        if (profileRes && profileRes.data) {
+          if (profileRes.data.analyticsAccessStatus === 'pending') {
+            setShowAccessModal(true);
+          } else {
+            setShowAccessModal(false);
+          }
         }
 
         // B. Check Messages if Counselor is known
         if (counselor && counselor._id) {
           const chatRes = await axios.get(
             `${API_BASE_URL}/messages/history?user1=${userId}&user2=${counselor._id}&requesterRole=student`
-          );
-          const history = chatRes.data || [];
+          ).catch(() => null);
 
-          if (history.length > 0) {
-            const latestMsg = history[history.length - 1];
+          if (chatRes && chatRes.data) {
+            const history = chatRes.data || [];
 
-            if (isInitialLoadRef.current) {
-              lastMessageIdRef.current = latestMsg._id;
-              isInitialLoadRef.current = false;
-            } else if (
-              latestMsg._id !== lastMessageIdRef.current &&
-              latestMsg.sender === counselor._id &&
-              !latestMsg.text.includes('System:')
-            ) {
-              lastMessageIdRef.current = latestMsg._id;
-              triggerMessageNotification(latestMsg);
+            if (history.length > 0) {
+              const latestMsg = history[history.length - 1];
+
+              if (isInitialLoadRef.current) {
+                lastMessageIdRef.current = latestMsg._id;
+                isInitialLoadRef.current = false;
+              } else if (
+                latestMsg._id !== lastMessageIdRef.current &&
+                latestMsg.sender === counselor._id &&
+                !latestMsg.text.includes('System:')
+              ) {
+                lastMessageIdRef.current = latestMsg._id;
+                triggerMessageNotification(latestMsg);
+              }
             }
           }
         }

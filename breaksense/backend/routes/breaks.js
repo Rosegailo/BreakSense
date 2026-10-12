@@ -71,6 +71,8 @@ router.post('/log-study', async (req, res) => {
 router.get('/stats', async (req, res) => {
     try {
         const { user_id, date } = req.query;
+        if (!user_id) return res.status(400).json({ success: false, error: 'user_id parameter required' });
+
         const dateToCompare = date || new Date().toISOString().split('T')[0];
 
         const user = await User.findById(user_id);
@@ -84,24 +86,30 @@ router.get('/stats', async (req, res) => {
 
         history.forEach(b => {
             const cat = (b.category || '').toLowerCase();
-            const bDate = b.createdAt.toISOString().split('T')[0];
+            const bDate = b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '';
 
-            if (cat === 'focus time') {
+            if (cat === 'focus time' || cat === 'study session') {
                 if (bDate === dateToCompare) {
                     stats.SessionsToday++;
-                    stats.TotalStudyTimeToday += b.duration_taken;
+                    stats.TotalStudyTimeToday += (b.duration_taken || 0);
                 }
             } else {
                 stats.totalBreaks++;
-                stats.totalRating += b.rating;
-                if (b.rating > stats.bestScore) stats.bestScore = b.rating;
+                stats.totalRating += (b.rating || 5);
+                if ((b.rating || 5) > stats.bestScore) stats.bestScore = (b.rating || 5);
 
-                if (cat.includes('physical') || cat.includes('move')) stats.counts['Physical Movement']++;
-                else if (cat.includes('mind')) stats.counts['Mindfulness']++;
-                else if (cat.includes('nutrition')) stats.counts['Nutrition']++;
-                else if (cat.includes('rest')) stats.counts['Rest & Recovery']++;
+                if (cat.includes('physical') || cat.includes('move') || cat.includes('stretch') || cat.includes('walk')) {
+                    stats.counts['Physical Movement']++;
+                } else if (cat.includes('mind') || cat.includes('breath') || cat.includes('meditat') || cat.includes('journal')) {
+                    stats.counts['Mindfulness']++;
+                } else if (cat.includes('nutrition') || cat.includes('water') || cat.includes('tea') || cat.includes('snack') || cat.includes('food') || cat.includes('hydrat')) {
+                    stats.counts['Nutrition']++;
+                } else {
+                    stats.counts['Rest & Recovery']++;
+                }
 
-                stats.freq[b.category] = (stats.freq[b.category] || 0) + 1;
+                const cleanCatName = b.category || 'Rest & Recovery';
+                stats.freq[cleanCatName] = (stats.freq[cleanCatName] || 0) + 1;
             }
         });
 
@@ -132,14 +140,16 @@ router.get('/stats', async (req, res) => {
             researchCitation = "Ariga & Lleras (2011), Cognition";
         }
 
+        const sessionsTodayCount = user && user.SessionsToday !== undefined ? user.SessionsToday : stats.SessionsToday;
+
         res.json({
             success: true,
             totalBreaks: stats.totalBreaks,
             avgScore: avgScoreVal,
             bestScore: stats.bestScore,
             topCategory: topCat,
-            SessionsToday: stats.SessionsToday,
-            TotalStudyTimeToday: stats.TotalStudyTimeToday,
+            SessionsToday: sessionsTodayCount,
+            TotalStudyTimeToday: user && user.TotalStudyTimeToday !== undefined ? user.TotalStudyTimeToday : stats.TotalStudyTimeToday,
             DayStreak: user ? user.DayStreak : 0,
             categoryCounts: stats.counts,
             actionableAdvice,

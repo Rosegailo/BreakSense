@@ -184,12 +184,16 @@ export default function App() {
       const cId = counselor?.id || counselor?._id;
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
+      if (student.analyticsAccessStatus === 'granted') {
+        const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
+        setStudentStats(statsRes.data);
+      }
     } catch (e) { console.log("Error loading student data", e); }
   };
 
-  // Fetch stats when moving to stats view
+  // Fetch stats whenever analytics view is active for a student with granted access
   useEffect(() => {
-    if (selectedStudent && view === 'stats' && selectedStudent.analyticsAccessStatus === 'granted') {
+    if (selectedStudent && view !== 'chat' && selectedStudent.analyticsAccessStatus === 'granted') {
       const fetchStats = async () => {
         try {
           const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
@@ -209,7 +213,7 @@ export default function App() {
     } catch (e) { console.log("Request access error", e); }
   };
 
-  // Auto-refresh chat, student list, and check for new student messages every 3 seconds
+  // Auto-refresh chat, student list, check for new student messages, and sync analytics in real-time
   useEffect(() => {
     let interval;
     const cId = counselor?.id || counselor?._id;
@@ -227,6 +231,14 @@ export default function App() {
              const updatedSelected = updatedStudents.find(s => s._id === selectedStudent._id);
              if (updatedSelected && updatedSelected.analyticsAccessStatus !== selectedStudent.analyticsAccessStatus) {
                setSelectedStudent(updatedSelected);
+             }
+
+             // If counselor is in analytics view and access is granted, refresh stats in real-time
+             if (view !== 'chat' && updatedSelected && updatedSelected.analyticsAccessStatus === 'granted') {
+               const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`).catch(() => null);
+               if (statsRes && statsRes.data) {
+                 setStudentStats(statsRes.data);
+               }
              }
 
              // If a student is selected and we are in chat view, refresh messages
@@ -451,7 +463,10 @@ export default function App() {
                       CONSULTATION
                     </button>
                     <button
-                      onClick={() => setView('analytics_init')}
+                      onClick={() => {
+                        markStudentAsViewed(selectedStudent._id);
+                        setView('stats');
+                      }}
                       className={`px-6 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${view !== 'chat' ? 'bg-[#00FF88] text-black shadow-lg shadow-[#00FF8833]' : theme.textMuted}`}
                     >
                       ANALYTICS
@@ -661,7 +676,7 @@ export default function App() {
                   {/* Bottom Cards Grid */}
                   <div className="grid grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
                     <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
-                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                       <h3 className={`text-s font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
                           <BarChart2 size={18} className={theme.textMuted} />
                           BREAK PREFERENCES
                        </h3>
@@ -679,21 +694,26 @@ export default function App() {
                     </div>
 
                     <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
-                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                       <h3 className={`text-s font-bold ${theme.text} uppercase tracking-[0.15em] mb-6 flex items-center gap-2.5 flex-none leading-relaxed`}>
                           <TrendingUp size={18} className={theme.textMuted} />
                           COUNSELOR SUMMARY
                        </h3>
-                       <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
-                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88] flex-1 flex flex-col justify-center`}>
-                             <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
-                             <p className="text-white text-sm font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>
-                          </div>
-                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88] flex-1 flex flex-col justify-center`}>
-                             <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">ACTIONABLE ADVICE</p>
-                             <p className="text-xs text-gray-200 font-medium leading-relaxed">
-                                {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting more physical movement if fatigue levels rise.`}
-                             </p>
-                          </div>
+                       <div className="flex-1 flex flex-col justify-center gap-8">
+                             <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                                {/* Changed text-xs to text-sm */}
+                                <p className="text-[#00FF88] text-sm font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
+                                {/* Changed text-sm to text-base */}
+                                <p className="text-white text-base font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>
+                             </div>
+
+                             <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                                {/* Changed text-xs to text-sm */}
+                                <p className="text-[#00FF88] text-sm font-bold uppercase tracking-wider mb-2">ACTIONABLE ADVICE</p>
+                                {/* Changed text-xs to text-sm */}
+                                <p className="text-sm text-gray-200 font-medium leading-relaxed">
+                                   {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting more physical movement if fatigue levels rise.`}
+                                </p>
+                             </div>
                        </div>
                     </div>
                   </div>

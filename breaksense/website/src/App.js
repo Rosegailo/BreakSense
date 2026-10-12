@@ -683,12 +683,12 @@ export default function App() {
                           <TrendingUp size={18} className={theme.textMuted} />
                           COUNSELOR SUMMARY
                        </h3>
-                       <div className="flex-1 flex flex-col justify-between gap-4 min-h-0 overflow-y-auto">
-                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                       <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
+                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88] flex-1 flex flex-col justify-center`}>
                              <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
                              <p className="text-white text-sm font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>
                           </div>
-                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
+                          <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88] flex-1 flex flex-col justify-center`}>
                              <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">ACTIONABLE ADVICE</p>
                              <p className="text-xs text-gray-200 font-medium leading-relaxed">
                                 {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting more physical movement if fatigue levels rise.`}

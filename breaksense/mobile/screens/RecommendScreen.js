@@ -67,6 +67,28 @@ export default function RecommendScreen({ navigation, route }) {
     }
   }, [checkin]);
 
+  const findActivity = (mlTitle) => {
+    if (!mlTitle) return BREAK_DATA['eye_rest'];
+
+    // 1. Direct title match (case-insensitive)
+    let match = Object.values(BREAK_DATA).find(act => act.title.toLowerCase() === mlTitle.toLowerCase());
+    if (match) return match;
+
+    // 2. Key match (e.g. BREAK_DATA['eye_rest'] or BREAK_DATA['five_min_walk'])
+    const key = mlTitle.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    if (BREAK_DATA[key]) return BREAK_DATA[key];
+
+    // 3. Substring match (e.g. 'Eye Rest' matches 'Eye Rest 20-20-20')
+    match = Object.values(BREAK_DATA).find(act =>
+      act.title.toLowerCase().includes(mlTitle.toLowerCase()) ||
+      mlTitle.toLowerCase().includes(act.title.toLowerCase())
+    );
+    if (match) return match;
+
+    // 4. Category / Fallback match
+    return BREAK_DATA['eye_rest'];
+  };
+
   const fetchRecommendation = async () => {
     try {
       setLoading(true);
@@ -77,7 +99,7 @@ export default function RecommendScreen({ navigation, route }) {
       });
 
       const mlTitle = response.data.break_type;
-      let activityData = Object.values(BREAK_DATA).find(act => act.title === mlTitle) || BREAK_DATA['eye_rest'];
+      let activityData = findActivity(mlTitle);
 
       // Prioritize user's selected time from Check-in
       const duration = checkin.time || response.data.duration_minutes || activityData.duration;
@@ -85,7 +107,7 @@ export default function RecommendScreen({ navigation, route }) {
       setSelected(activityData);
       setFinalDuration(duration);
       setSecondsLeft(duration * 60);
-      setMlLog(`ML Result: ${mlTitle}`);
+      setMlLog(`ML Result: ${activityData.title}`);
       setIsFinished(false);
       setTimerRunning(false);
       setRating(null);

@@ -311,6 +311,19 @@ export const TimerProvider = ({ children }) => {
 
   const reloadSettings = async (force = false) => {
     try {
+      const savedEndTime = await AsyncStorage.getItem('timer_end_time');
+      const savedIsRunning = await AsyncStorage.getItem('timer_is_running');
+
+      // Preserve active timer countdown across navigation
+      if (savedIsRunning === 'true' && savedEndTime) {
+        const remaining = Math.round((parseInt(savedEndTime) - Date.now()) / 1000);
+        if (remaining > 0) {
+          setTimeLeft(remaining);
+          setIsRunning(true);
+          return;
+        }
+      }
+
       const savedSessions = await AsyncStorage.getItem('settings_sessions');
       const savedPomodoro = await AsyncStorage.getItem('settings_pomodoro');
 
@@ -318,8 +331,7 @@ export const TimerProvider = ({ children }) => {
       if (savedPomodoro) {
         const dur = parseInt(savedPomodoro.split(' ')[0]);
 
-        // ONLY update duration if we are forced (screen mount)
-        // OR if the timer is not running and hasn't been changed manually yet
+        // ONLY update duration if forced or if timer is unstarted
         if (force || (!isRunning && timeLeft === sessionDuration * 60)) {
           setSessionDuration(dur);
           setTimeLeft(dur * 60);

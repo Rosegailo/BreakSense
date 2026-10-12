@@ -27,8 +27,36 @@ export default function App() {
   const [isRiskMenuOpen, setIsRiskMenuOpen] = useState(false);
   const [webToast, setWebToast] = useState(null);
   const [unreadStudentIds, setUnreadStudentIds] = useState({});
+  const [deniedCooldowns, setDeniedCooldowns] = useState({});
   const lastMessageIdsRef = useRef({});
   const isInitialWebLoadRef = useRef(true);
+
+  // 1-second interval to count down active request-denied cooldowns
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDeniedCooldowns(prev => {
+        let changed = false;
+        const next = { ...prev };
+        Object.keys(next).forEach(id => {
+          if (next[id] > 0) {
+            next[id] -= 1;
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Trigger 10-second cooldown whenever selected student's status becomes 'denied'
+  useEffect(() => {
+    if (selectedStudent && selectedStudent.analyticsAccessStatus === 'denied') {
+      if (deniedCooldowns[selectedStudent._id] === undefined) {
+        setDeniedCooldowns(prev => ({ ...prev, [selectedStudent._id]: 10 }));
+      }
+    }
+  }, [selectedStudent]);
 
   const [viewedStudents, setViewedStudents] = useState(() => {
     try {
@@ -44,6 +72,16 @@ export default function App() {
       Notification.requestPermission();
     }
   }, [isLoggedIn]);
+
+  // Auto-dismiss web notification toast after 5 seconds
+  useEffect(() => {
+    if (webToast) {
+      const timer = setTimeout(() => {
+        setWebToast(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [webToast]);
 
   // Auto-dismiss toast notification after 5 seconds
   useEffect(() => {
@@ -175,6 +213,7 @@ export default function App() {
     try {
       await axios.put(`${API_BASE_URL}/auth/request-access`, { userId: selectedStudent._id });
       setRequestSent(true);
+      setDeniedCooldowns(prev => ({ ...prev, [selectedStudent._id]: undefined }));
       fetchStudents(); // Refresh student list to update status
     } catch (e) { console.log("Request access error", e); }
   };
@@ -703,16 +742,36 @@ export default function App() {
                    </button>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'denied' ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className="text-4xl font-black text-[#FF3B3B] tracking-tighter mb-4">Request denied</h2>
-                   <button
-                     onClick={() => loadStudentData(selectedStudent)}
-                     className={`text-xs font-black ${theme.textMuted} lowercase border-b border-[#333] hover:text-white transition-all`}
-                   >
-                     close
-                   </button>
+                <div className="flex-1 flex flex-col items-center justify-center py-40 text-center">
+                   <h2 className="text-4xl font-black text-[#FF3B3B] tracking-tight mb-4">Request denied</h2>
+
+                   {(deniedCooldowns[selectedStudent._id] || 0) > 0 ? (
+                     <div className="flex flex-col items-center gap-4">
+                       <p className={`${theme.textMuted} text-sm font-semibold max-w-md`}>
+                         The student declined analytics access. A 10-second cooldown is active before you can request again.
+                       </p>
+                       <div className={`${theme.cardLighter} border ${theme.border} px-8 py-4 rounded-full shadow-xl flex items-center gap-3 opacity-80 cursor-not-allowed mt-2`}>
+                         <Clock size={18} className="text-[#FF3B3B] animate-spin" />
+                         <p className="text-xs font-black text-[#FF3B3B] uppercase tracking-widest">
+                           Resend available in {deniedCooldowns[selectedStudent._id]}s
+                         </p>
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col items-center gap-6">
+                       <p className={`${theme.textMuted} text-sm font-semibold max-w-md mb-2`}>
+                         The cooldown period has completed. You may now resend the access request to {selectedStudent.first_name}.
+                       </p>
+                       <button
+                         onClick={requestAccess}
+                         className="bg-[#1A7A4D] hover:bg-[#15633E] text-[#00FF88] px-14 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-[#00FF8811] cursor-pointer"
+                       >
+                         Resend Access Request
+                       </button>
+                     </div>
+                   )}
                 </div>
-              ) : selectedStudent.analyticsAccessStatus === 'pending' || requestSent ? (
+              ) : selectedStudent.analyticsAccessStatus === 'pending' ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-40 text-center">
                    <h2 className={`text-4xl font-black ${theme.text} tracking-tight mb-4 max-w-2xl px-10`}>You don't have access to this student's Analytics.</h2>
                    <h2 className={`text-3xl font-black ${theme.text} tracking-tight mb-12`}>Would you like to request access?</h2>

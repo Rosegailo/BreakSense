@@ -47,6 +47,13 @@ router.post('/log-study', async (req, res) => {
             user.TotalStudyTimeToday = parseInt(study_duration);
         }
         user.LastStudyDate = new Date();
+
+        // Reset analytics access status after ending a study session
+        // so the counselor can request access again for the new session
+        user.analyticsAccessStatus = 'none';
+        user.dataSharingPermission = 'none';
+        user.permissionExpiry = null;
+
         await user.save();
 
         const focusBreak = new Break({
@@ -147,13 +154,63 @@ router.get('/stats', async (req, res) => {
 router.post('/recommend', async (req, res) => {
     try {
         const { fatigue, stress, time } = req.body;
+        const fatVal = parseInt(fatigue) || 3;
+        const strVal = parseInt(stress) || 2;
+        const timeVal = parseInt(time) || 10;
+
         const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
-        const response = await axios.post(`${ML_SERVICE_URL}/predict`, {
-            mood: 6 - fatigue, stress, work_duration: time / 60
-        }, { timeout: 5000 });
-        res.json(response.data);
+        try {
+            const response = await axios.post(`${ML_SERVICE_URL}/predict`, {
+                mood: Math.max(1, Math.min(5, 6 - fatVal)),
+                stress: strVal,
+                work_duration: timeVal / 60
+            }, { timeout: 3000 });
+
+            if (response.data && response.data.break_type) {
+                return res.json(response.data);
+            }
+        } catch (mlError) {
+            console.log("ML Microservice offline/unreachable. Using dynamic AI rule fallback.");
+        }
+
+        // --- Dynamic AI Fallback Engine ---
+        // Generates varied, tailored recommendations based on fatigue, stress, and break duration
+        let breakType = 'Eye Rest 20-20-20';
+        let durationMin = timeVal;
+
+        if (fatVal >= 4 && timeVal >= 15) {
+            breakType = 'Power Nap';
+            durationMin = 20;
+        } else if (strVal >= 3 && fatVal >= 3) {
+            breakType = 'Box Breathing';
+            durationMin = 5;
+        } else if (fatVal >= 4) {
+            breakType = 'Neck & Shoulder Stretch';
+            durationMin = 5;
+        } else if (strVal >= 3) {
+            breakType = '5-4-3-2-1 Grounding';
+            durationMin = 5;
+        } else if (timeVal >= 15) {
+            breakType = 'Digital Detox';
+            durationMin = 15;
+        } else if (fatVal <= 2 && strVal <= 1) {
+            breakType = '5-Min Walk';
+            durationMin = 5;
+        } else if (timeVal === 10) {
+            breakType = 'Hydration Reset';
+            durationMin = 5;
+        } else {
+            breakType = 'Eye Rest 20-20-20';
+            durationMin = 5;
+        }
+
+        res.json({
+            break_type: breakType,
+            duration_minutes: durationMin,
+            is_fallback: true
+        });
     } catch (error) {
-        res.json({ break_type: 'eye_rest', duration_minutes: 5, is_fallback: true });
+        res.json({ break_type: 'Eye Rest 20-20-20', duration_minutes: 5, is_fallback: true });
     }
 });
 

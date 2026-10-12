@@ -122,8 +122,20 @@ router.get('/students', async (req, res) => {
         // Find all students and include stats, sharing permissions, and access status
         const students = await User.find(
             { role: 'student' },
-            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus riskLevel'
+            'first_name last_name email SessionsToday TotalStudyTimeToday DayStreak dataSharingPermission analyticsAccessStatus permissionExpiry riskLevel'
         );
+
+        // Auto-expire time-limited permissions if expired
+        const now = new Date();
+        for (let s of students) {
+            if (s.permissionExpiry && now > new Date(s.permissionExpiry)) {
+                s.analyticsAccessStatus = 'none';
+                s.dataSharingPermission = 'none';
+                s.permissionExpiry = null;
+                await s.save();
+            }
+        }
+
         res.json(students);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });

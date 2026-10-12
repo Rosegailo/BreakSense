@@ -79,7 +79,7 @@ export default function ConsultationScreen() {
                 await axios.post(`${API_BASE_URL}/messages/send`, {
                   senderId: userId,
                   recipientId: counselor._id,
-                  text: `🚫 System: Analytics access revoked by student.`
+                  text: `🚫 System: ANALYTICS ACCESS REMOVED BY STUDENT.`
                 });
               }
 

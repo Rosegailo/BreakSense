@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert
 } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import Header from './components/Header';
 import axios from 'axios';
@@ -180,6 +181,16 @@ export default function StudyTimerScreen({ navigation }) {
     return time < 10 ? `0${time}` : `${time}`;
   };
 
+  // Calculate progress for Animated Circular Progress Ring
+  const totalSeconds = sessionDuration * 60;
+  const progress = totalSeconds > 0 ? Math.max(0, Math.min(1, timeLeft / totalSeconds)) : 1;
+
+  const ringSize = 230;
+  const strokeWidth = 10;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - progress);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Header />
@@ -229,13 +240,39 @@ export default function StudyTimerScreen({ navigation }) {
           </View>
 
           <View style={styles.timerContainer}>
-            <View style={[styles.ringBackground, { borderColor: colors.background }]}>
-              <Text style={styles.timerText}>
-                {formatTime(minutes)}:{formatTime(seconds)}
-              </Text>
-              <Text style={styles.sessionLabel}>
-                SESSION {currentSession} OF {totalSessions}
-              </Text>
+            <View style={{ width: ringSize, height: ringSize, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+              <Svg width={ringSize} height={ringSize} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                {/* Track Ring */}
+                <Circle
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  stroke={colors.card === '#1B1E2B' ? '#282C3B' : '#E2E8F0'}
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                />
+                {/* Animated Progress Ring */}
+                <Circle
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  stroke="#FFD700"
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </Svg>
+
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={styles.timerText}>
+                  {formatTime(minutes)}:{formatTime(seconds)}
+                </Text>
+                <Text style={styles.sessionLabel}>
+                  SESSION {currentSession} OF {totalSessions}
+                </Text>
+              </View>
             </View>
           </View>
 

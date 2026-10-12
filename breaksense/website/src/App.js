@@ -83,16 +83,6 @@ export default function App() {
     }
   }, [webToast]);
 
-  // Auto-dismiss toast notification after 5 seconds
-  useEffect(() => {
-    if (webToast) {
-      const timer = setTimeout(() => {
-        setWebToast(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [webToast]);
-
   // Audio Synthesizer Notification Chime
   const playNotificationSound = () => {
     try {
@@ -677,7 +667,7 @@ export default function App() {
                        </h3>
                        <div className="flex-1 w-full min-h-0">
                           <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={catData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                             <BarChart data={catData} margin={{ top: 10, right: 10, left: 10, bottom: 25 }}>
                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#282C3B" : "#E9ECEF"} />
                                <XAxis dataKey="name" interval={0} fontSize={11} fontWeight="700" axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#E5E7EB' : '#374151'}} dy={12} />
                                <YAxis axisLine={false} tickLine={false} hide />
@@ -693,7 +683,7 @@ export default function App() {
                           <TrendingUp size={18} className={theme.textMuted} />
                           COUNSELOR SUMMARY
                        </h3>
-                       <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
+                       <div className="flex-1 flex flex-col justify-between gap-4 min-h-0 overflow-y-auto">
                           <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
                              <p className="text-[#00FF88] text-xs font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
                              <p className="text-white text-sm font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>

@@ -652,11 +652,6 @@ export default function App() {
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'granted' && (view === 'stats' || (view !== 'chat' && viewedStudents[selectedStudent._id])) ? (
                 <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
-                  {/* Student Name Header */}
-                  <h2 className="text-3xl font-black text-white tracking-tight capitalize flex-none">
-                    {selectedStudent.first_name} {selectedStudent.last_name}
-                  </h2>
-
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-5 flex-none">
                     <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>

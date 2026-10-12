@@ -651,116 +651,62 @@ export default function App() {
                   </div>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'granted' && (view === 'stats' || (view !== 'chat' && viewedStudents[selectedStudent._id])) ? (
-                <div className="flex-1 flex flex-col min-h-0 px-6 md:px-10 pb-6 pt-2 space-y-6 overflow-y-auto md:overflow-hidden">
-                  {/* Stats Grid - 2 columns on mobile, 4 columns on web */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5 flex-none">
-                    {/* Card 1: Session Today */}
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-[#00FF8866] transition-all duration-300 shadow-md hover:shadow-2xl`}>
-                      <div className="flex items-center justify-end gap-2 text-right">
-                        <Clock size={16} className={theme.textMuted} />
-                        <p className={`font-mono text-xs md:text-sm font-black ${theme.textHeading} tracking-wide uppercase text-right`}>Session Today</p>
-                      </div>
-                      <div className="flex justify-end">
-                        <div className={`px-4 py-1.5 rounded-xl ${theme.cardLighter} border ${theme.border} shadow-inner`}>
-                          <p className="font-mono text-3xl font-black" style={{ color: theme.accentGreen }}>{studentStats?.SessionsToday || 0}</p>
-                        </div>
-                      </div>
+                <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-4 gap-5 flex-none">
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>
+                      <p className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest leading-relaxed`}>Session Today</p>
+                      <p className="text-3xl font-bold text-[#00FF88]">{studentStats?.SessionsToday || 0}</p>
                     </div>
-
-                    {/* Card 2: Lifetime Breaks */}
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-[#FF7A0066] transition-all duration-300 shadow-md hover:shadow-2xl`}>
-                      <div className="flex items-center justify-end gap-2 text-right">
-                        <CheckCircle size={16} className={theme.textMuted} />
-                        <p className={`font-mono text-xs md:text-sm font-black ${theme.textHeading} tracking-wide uppercase text-right`}>Lifetime Breaks</p>
-                      </div>
-                      <div className="flex justify-end">
-                        <div className={`px-4 py-1.5 rounded-xl ${theme.cardLighter} border ${theme.border} shadow-inner`}>
-                          <p className="font-mono text-3xl font-black" style={{ color: theme.accentOrange }}>{studentStats?.totalBreaks || 0}</p>
-                        </div>
-                      </div>
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>
+                      <p className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest leading-relaxed`}>Lifetime Breaks</p>
+                      <p className="text-3xl font-bold text-[#FF7A00]">{studentStats?.totalBreaks || 0}</p>
                     </div>
-
-                    {/* Card 3: AVG Refresh */}
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-[#0066FF66] transition-all duration-300 shadow-md hover:shadow-2xl`}>
-                      <div className="flex items-center justify-end gap-2 text-right">
-                        <TrendingUp size={16} className={theme.textMuted} />
-                        <p className={`font-mono text-xs md:text-sm font-black ${theme.textHeading} tracking-wide uppercase text-right`}>AVG Refresh</p>
-                      </div>
-                      <div className="flex justify-end">
-                        <div className={`px-4 py-1.5 rounded-xl ${theme.cardLighter} border ${theme.border} shadow-inner`}>
-                          <p className="font-mono text-3xl font-black" style={{ color: theme.accentBlue }}>{studentStats?.avgScore?.toFixed(1) || '0.0'}</p>
-                        </div>
-                      </div>
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>
+                      <p className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest leading-relaxed`}>AVG Refresh</p>
+                      <p className="text-3xl font-bold text-[#0066FF]">{studentStats?.avgScore?.toFixed(1) || '0.0'}</p>
                     </div>
-
-                    {/* Card 4: Day Streak */}
-                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-[#A855F766] transition-all duration-300 shadow-md hover:shadow-2xl`}>
-                      <div className="flex items-center justify-end gap-2 text-right">
-                        <AlertCircle size={16} className={theme.textMuted} />
-                        <p className={`font-mono text-xs md:text-sm font-black ${theme.textHeading} tracking-wide uppercase text-right`}>Day Streak</p>
-                      </div>
-                      <div className="flex justify-end">
-                        <div className={`px-4 py-1.5 rounded-xl ${theme.cardLighter} border ${theme.border} shadow-inner`}>
-                          <p className="font-mono text-3xl font-black" style={{ color: theme.accentPurple }}>{studentStats?.DayStreak || 0}D</p>
-                        </div>
-                      </div>
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} relative overflow-hidden flex flex-col justify-between h-28`}>
+                      <p className={`text-xs font-bold ${theme.textMuted} uppercase tracking-widest leading-relaxed`}>Day Streak</p>
+                      <p className="text-3xl font-bold text-[#A855F7]">{studentStats?.DayStreak || 0}D</p>
                     </div>
                   </div>
 
                   {/* Bottom Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
-                    <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden shadow-lg`}>
-                       <div className="flex items-center gap-3 mb-6 flex-none">
-                          <BarChart2 size={24} className={theme.textMuted} />
-                          <h3 className={`font-mono font-black ${theme.textHeading} text-lg tracking-widest uppercase`}>
-                             BREAK PREFERENCES
-                          </h3>
-                       </div>
-                       <div className="flex-1 w-full min-h-[280px] h-full">
+                  <div className="grid grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col h-full overflow-hidden`}>
+                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-3 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                          <BarChart2 size={16} className={theme.textMuted} />
+                          BREAK PREFERENCES
+                       </h3>
+                       <div className="flex-1 w-full min-h-0">
                           <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={catData} margin={{ top: 20, right: 20, left: 20, bottom: 25 }}>
-                               <CartesianGrid strokeDasharray="0" vertical={false} stroke={isDarkMode ? "#282C3B" : "#E9ECEF"} />
-                               <XAxis
-                                 dataKey="name"
-                                 interval={0}
-                                 fontSize={11}
-                                 axisLine={false}
-                                 tickLine={false}
-                                 tick={{ fill: isDarkMode ? '#8E95A5' : '#495057', fontFamily: 'monospace', fontWeight: 600 }}
-                                 dy={10}
-                               />
+                             <BarChart data={catData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#2A2E37" : "#E9ECEF"} />
+                               <XAxis dataKey="name" interval={0} fontSize={11} fontWeight="700" axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#E5E7EB' : '#374151'}} dy={12} />
                                <YAxis axisLine={false} tickLine={false} hide />
-                               <Tooltip
-                                 cursor={{ fill: isDarkMode ? '#222635' : '#F1F3F5' }}
-                                 contentStyle={{
-                                   backgroundColor: isDarkMode ? '#1B1E2B' : '#FFF',
-                                   borderRadius: '12px',
-                                   border: `1px solid ${isDarkMode ? '#282C3B' : '#E9ECEF'}`,
-                                   color: isDarkMode ? '#FFF' : '#212529'
-                                 }}
-                               />
-                               <Bar dataKey="value" fill={isDarkMode ? "#25523B" : "#10B981"} radius={[4, 4, 0, 0]} barSize={45} />
+                               <Tooltip cursor={{fill: isDarkMode ? '#20242D' : '#F1F3F5'}} contentStyle={{backgroundColor: isDarkMode ? '#1A1D23' : '#FFF', borderRadius: '15px', border: `1px solid ${isDarkMode ? '#2A2E37' : '#E9ECEF'}`, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)'}} />
+                               <Bar dataKey="value" fill="#1A7A4D" radius={[6, 6, 0, 0]} barSize={45} />
                              </BarChart>
                           </ResponsiveContainer>
                        </div>
                     </div>
 
-                    <div className={`${theme.card} p-6 rounded-2xl border ${theme.border} flex flex-col h-fit overflow-hidden shadow-lg`}>
-                       <div className="flex items-center gap-3 mb-6 flex-none">
-                          <TrendingUp size={24} className={theme.textMuted} />
-                          <h3 className={`font-mono font-black ${theme.textHeading} text-lg tracking-widest uppercase`}>
-                             COUNSELOR SUMMARY
-                          </h3>
-                       </div>
-                       <div className="flex flex-col justify-start gap-4">
-                          <div className={`${theme.cardLighter} p-5 rounded-xl border-l-[3px] flex flex-col justify-center h-fit`} style={{ borderColor: theme.accentGreen }}>
-                             <p className="font-mono font-black text-base uppercase tracking-wider mb-2" style={{ color: theme.accentGreen }}>MOST USED RECOVERY</p>
-                             <p className={`font-mono font-bold ${theme.textHeading} text-sm tracking-wider uppercase`}>{studentStats?.topCategory || 'NONE'}</p>
+                    <div className={`${theme.card} p-5 rounded-2xl border ${theme.border} flex flex-col h-fit overflow-hidden`}>
+                       <h3 className={`text-xs font-bold ${theme.text} uppercase tracking-[0.15em] mb-3 flex items-center gap-2.5 flex-none leading-relaxed`}>
+                          <TrendingUp size={16} className={theme.textMuted} />
+                          COUNSELOR SUMMARY
+                       </h3>
+                       <div className="flex flex-col justify-start gap-4 min-h-0">
+                          <div className={`h-fit p-5 ${theme.cardLighter} border-l-4 border-[#00FF88] rounded-xl flex flex-col justify-start`}>
+                             <p className="text-[#00FF88] text-lg font-extrabold mb-2 uppercase tracking-wider leading-relaxed">MOST USED RECOVERY</p>
+                             <p className="text-white text-base font-semibold leading-relaxed uppercase tracking-tight">{studentStats?.topCategory || 'NONE'}</p>
                           </div>
-                          <div className={`${theme.cardLighter} p-5 rounded-xl border-l-[3px] flex flex-col justify-center h-fit`} style={{ borderColor: theme.accentGreen }}>
-                             <p className="font-mono font-black text-base uppercase tracking-wider mb-2" style={{ color: theme.accentGreen }}>ACTIONABLE ADVICE</p>
-                             <p className={`text-base leading-relaxed font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting active physical movement breaks to sustain attention.`}
+                          <div className={`h-fit p-5 ${theme.cardLighter} border-l-4 border-[#0066FF] rounded-xl flex flex-col justify-start`}>
+                             <p className="text-[#00FF88] text-lg font-extrabold mb-2 uppercase tracking-wider leading-relaxed">ACTIONABLE ADVICE</p>
+                             <p className="text-white text-base font-semibold leading-relaxed">
+                                The student has a recovery score of {studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer {studentStats?.topCategory || 'None'}.
+                                Consider suggesting more physical movement if fatigue levels rise.
                              </p>
                           </div>
                        </div>

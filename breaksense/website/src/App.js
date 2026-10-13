@@ -218,20 +218,21 @@ export default function App() {
     } catch (e) { console.log("Request access error", e); }
   };
 
-  // Auto-refresh chat, student list, check for new student messages, and sync analytics in real-time
+  // Global background listener: Polls student directory, analytics sync, and instant messages across ALL students
   useEffect(() => {
     let interval;
     const cId = counselor?.id || counselor?._id;
     if (isLoggedIn && cId) {
       interval = setInterval(async () => {
         try {
-           // Always refresh students to keep access status updated
+           // 1. Always refresh students to keep access status and last message times updated
            const studentRes = await axios.get(`${API_BASE_URL}/auth/students`).catch(() => null);
            if (!studentRes || !studentRes.data) return;
 
            const updatedStudents = studentRes.data || [];
            setStudents(updatedStudents);
 
+           // 2. Keep selected student reference updated
            if (selectedStudent) {
              const updatedSelected = updatedStudents.find(s => s._id === selectedStudent._id);
              if (updatedSelected && updatedSelected.analyticsAccessStatus !== selectedStudent.analyticsAccessStatus) {
@@ -245,38 +246,59 @@ export default function App() {
                  setStudentStats(statsRes.data);
                }
              }
+           }
 
-             // If a student is selected and we are in chat view, refresh messages
-             if (view === 'chat') {
-               const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${selectedStudent._id}&requesterRole=counselor`).catch(() => null);
-               if (chatRes && chatRes.data) {
-                 const history = chatRes.data || [];
-                 if (history.length > 0) {
-                   const latestMsg = history[history.length - 1];
-                   const prevMsgId = lastMessageIdsRef.current[selectedStudent._id];
+           // 3. Global Message Listener: Check messages for ALL students to trigger instant notifications on any tab/page
+           for (const s of updatedStudents) {
+             const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${s._id}&requesterRole=counselor`).catch(() => null);
+             if (chatRes && chatRes.data && chatRes.data.length > 0) {
+               const history = chatRes.data || [];
+               const latestMsg = history[history.length - 1];
+               const prevMsgId = lastMessageIdsRef.current[s._id];
 
-                   if (isInitialWebLoadRef.current) {
-                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
-                   } else if (
-                     latestMsg._id !== prevMsgId &&
-                     latestMsg.sender === selectedStudent._id &&
-                     !latestMsg.text.includes('System:')
-                   ) {
-                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
-                     playNotificationSound();
-                     setWebToast({ student: selectedStudent, text: latestMsg.text });
+               if (isInitialWebLoadRef.current) {
+                 lastMessageIdsRef.current[s._id] = latestMsg._id;
+               } else if (
+                 latestMsg._id !== prevMsgId &&
+                 latestMsg.sender === s._id &&
+                 !latestMsg.text.includes('System:')
+               ) {
+                 lastMessageIdsRef.current[s._id] = latestMsg._id;
 
-                     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                       new Notification(`New Message from ${selectedStudent.first_name}`, { body: latestMsg.text });
-                     }
-                   } else {
-                     lastMessageIdsRef.current[selectedStudent._id] = latestMsg._id;
-                   }
+                 // Instant notification alerts across any page/tab
+                 playNotificationSound();
+                 setWebToast({ student: s, text: latestMsg.text });
+                 setUnreadStudentIds(prev => ({ ...prev, [s._id]: true }));
+
+                 // Browser System Push Notification (triggers even when navigated away or backgrounded)
+                 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                   try {
+                     new Notification(`New Message from ${s.first_name} ${s.last_name}`, {
+                       body: latestMsg.text,
+                       icon: '/logo.png',
+                       tag: `msg-${latestMsg._id}`,
+                     });
+                   } catch (err) {}
                  }
+               } else {
+                 lastMessageIdsRef.current[s._id] = latestMsg._id;
+               }
+
+               // Update active message view if currently open in consultation
+               if (selectedStudent && selectedStudent._id === s._id && view === 'chat') {
                  setMessages(history);
                }
              }
            }
+
+           if (isInitialWebLoadRef.current) {
+             isInitialWebLoadRef.current = false;
+           }
+        } catch (e) {}
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [selectedStudent, isLoggedIn, counselor, view]);
 
            if (isInitialWebLoadRef.current) {
              isInitialWebLoadRef.current = false;

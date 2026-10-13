@@ -104,6 +104,28 @@ export default function App() {
       return updated;
     });
   };
+
+  const isAnalyticsUnlocked = (student) => {
+    if (!student) return false;
+    const id = student._id;
+    const status = student.analyticsAccessStatus;
+    const perm = student.dataSharingPermission;
+
+    if (status === 'denied') return false;
+
+    if (
+      status === 'granted' ||
+      perm === 'session' ||
+      perm === '24hours' ||
+      perm === '7days' ||
+      grantedAccessMap[id] ||
+      viewedStudents[id]
+    ) {
+      return true;
+    }
+
+    return false;
+  };
   const chatEndRef = useRef(null);
 
   // Request browser notification permission
@@ -224,7 +246,7 @@ export default function App() {
       const cId = counselor?.id || counselor?._id;
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
-      if (student.analyticsAccessStatus === 'granted') {
+      if (isAnalyticsUnlocked(student)) {
         const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
         setStudentStats(statsRes.data);
       } else {
@@ -235,7 +257,7 @@ export default function App() {
 
   // Fetch stats whenever analytics view is active for a student with granted access
   useEffect(() => {
-    if (selectedStudent && view !== 'chat' && selectedStudent.analyticsAccessStatus === 'granted') {
+    if (selectedStudent && view !== 'chat' && isAnalyticsUnlocked(selectedStudent)) {
       const fetchStats = async () => {
         try {
           const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
@@ -273,7 +295,7 @@ export default function App() {
            if (selectedStudent) {
              const updatedSelected = updatedStudents.find(s => s._id === selectedStudent._id);
              if (updatedSelected) {
-               if (updatedSelected.analyticsAccessStatus === 'granted') {
+               if (updatedSelected.analyticsAccessStatus === 'granted' || updatedSelected.dataSharingPermission === 'session' || updatedSelected.dataSharingPermission === '24hours' || updatedSelected.dataSharingPermission === '7days') {
                  markAccessAsGranted(updatedSelected._id);
                } else if (updatedSelected.analyticsAccessStatus === 'denied' || (updatedSelected.analyticsAccessStatus === 'none' && updatedSelected.dataSharingPermission === 'none')) {
                  markAccessAsRevoked(updatedSelected._id);
@@ -282,8 +304,7 @@ export default function App() {
              }
 
              // If counselor is in analytics view and access is unlocked, refresh stats in real-time
-             const isUnlocked = selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id];
-             if (view !== 'chat' && isUnlocked) {
+             if (view !== 'chat' && isAnalyticsUnlocked(selectedStudent)) {
                const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`).catch(() => null);
                if (statsRes && statsRes.data) {
                  setStudentStats(statsRes.data);
@@ -727,7 +748,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              ) : selectedStudent.analyticsAccessStatus === 'granted' ? (
+              ) : isAnalyticsUnlocked(selectedStudent) ? (
                 <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-5 flex-none">
@@ -776,16 +797,12 @@ export default function App() {
                        </h3>
                        <div className="flex-1 flex flex-col justify-center gap-8">
                              <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
-                                {/* Changed text-xs to text-sm */}
                                 <p className="text-[#00FF88] text-sm font-bold uppercase tracking-wider mb-2">MOST USED RECOVERY</p>
-                                {/* Changed text-sm to text-base */}
                                 <p className="text-white text-base font-bold uppercase tracking-wide">{studentStats?.topCategory || 'NONE'}</p>
                              </div>
 
                              <div className={`p-5 ${theme.cardLighter} rounded-xl border-l-2 border-[#00FF88]`}>
-                                {/* Changed text-xs to text-sm */}
                                 <p className="text-[#00FF88] text-sm font-bold uppercase tracking-wider mb-2">ACTIONABLE ADVICE</p>
-                                {/* Changed text-xs to text-sm */}
                                 <p className="text-sm text-gray-200 font-medium leading-relaxed">
                                    {studentStats?.actionableAdvice || `The student has a recovery score of ${studentStats?.avgScore?.toFixed(1) || '0.0'}. They seem to prefer ${studentStats?.topCategory || 'None'}. Consider suggesting more physical movement if fatigue levels rise.`}
                                 </p>
@@ -793,19 +810,6 @@ export default function App() {
                        </div>
                     </div>
                   </div>
-                </div>
-              ) : selectedStudent.analyticsAccessStatus === 'granted' ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-40">
-                   <h2 className="text-4xl font-black text-white tracking-tighter mb-8">Request granted</h2>
-                   <button
-                     onClick={() => {
-                        markStudentAsViewed(selectedStudent._id);
-                        setView('stats');
-                     }}
-                     className={`${theme.card} border ${theme.border} px-12 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:${theme.cardLighter} transition-all shadow-xl`}
-                   >
-                     View
-                   </button>
                 </div>
               ) : selectedStudent.analyticsAccessStatus === 'denied' ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-40 text-center">

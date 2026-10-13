@@ -220,36 +220,31 @@ export default function App() {
     setView(targetView);
     setRequestSent(student.analyticsAccessStatus === 'pending');
     setUnreadStudentIds(prev => ({ ...prev, [student._id]: false }));
-    if (student.analyticsAccessStatus === 'granted') {
-      markAccessAsGranted(student._id);
-    }
     try {
       const cId = counselor?.id || counselor?._id;
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
-      const isUnlocked = student.analyticsAccessStatus === 'granted' || grantedAccessMap[student._id] || viewedStudents[student._id];
-      if (isUnlocked) {
+      if (student.analyticsAccessStatus === 'granted') {
         const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
         setStudentStats(statsRes.data);
+      } else {
+        setStudentStats(null);
       }
     } catch (e) { console.log("Error loading student data", e); }
   };
 
-  // Fetch stats whenever analytics view is active for a student with granted or session-unlocked access
+  // Fetch stats whenever analytics view is active for a student with granted access
   useEffect(() => {
-    if (selectedStudent && view !== 'chat') {
-      const isUnlocked = selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id];
-      if (isUnlocked) {
-        const fetchStats = async () => {
-          try {
-            const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
-            setStudentStats(statsRes.data);
-          } catch (e) { console.log("Stats fetch error", e); }
-        };
-        fetchStats();
-      }
+    if (selectedStudent && view !== 'chat' && selectedStudent.analyticsAccessStatus === 'granted') {
+      const fetchStats = async () => {
+        try {
+          const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
+          setStudentStats(statsRes.data);
+        } catch (e) { console.log("Stats fetch error", e); }
+      };
+      fetchStats();
     }
-  }, [selectedStudent, view, grantedAccessMap, viewedStudents]);
+  }, [selectedStudent, view]);
 
   const requestAccess = async () => {
     try {
@@ -732,7 +727,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              ) : (selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id]) && (view === 'stats' || view !== 'chat') ? (
+              ) : selectedStudent.analyticsAccessStatus === 'granted' ? (
                 <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-5 flex-none">

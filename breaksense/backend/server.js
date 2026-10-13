@@ -15,10 +15,20 @@ app.use(express.urlencoded({ extended: true }));
 const breakRoutes = require('./routes/breaks');
 const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const path = require('path');
 
 app.use('/api/breaks', breakRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
+
+app.get('/download-apk', (req, res) => {
+    const apkPath = path.join(__dirname, '../mobile/android/app/build/outputs/apk/release/app-release.apk');
+    res.download(apkPath, 'BreakSense.apk', (err) => {
+        if (err && !res.headersSent) {
+            res.status(404).send('APK file not found on server.');
+        }
+    });
+});
 
 app.get('/health', (_, res) => {
     res.json({ 

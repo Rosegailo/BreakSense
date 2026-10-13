@@ -69,6 +69,27 @@ export default function App() {
       return saved ? JSON.parse(saved) : {};
     } catch (e) { return {}; }
   });
+
+  const [grantedAccessMap, setGrantedAccessMap] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('grantedAccessMap');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
+  });
+
+  const markAccessAsGranted = (id) => {
+    if (!id) return;
+    setGrantedAccessMap(prev => {
+      const updated = { ...prev, [id]: true };
+      sessionStorage.setItem('grantedAccessMap', JSON.stringify(updated));
+      return updated;
+    });
+    setViewedStudents(prev => {
+      const updated = { ...prev, [id]: true };
+      sessionStorage.setItem('viewedStudents', JSON.stringify(updated));
+      return updated;
+    });
+  };
   const chatEndRef = useRef(null);
 
   // Request browser notification permission
@@ -185,29 +206,36 @@ export default function App() {
     setView(targetView);
     setRequestSent(student.analyticsAccessStatus === 'pending');
     setUnreadStudentIds(prev => ({ ...prev, [student._id]: false }));
+    if (student.analyticsAccessStatus === 'granted') {
+      markAccessAsGranted(student._id);
+    }
     try {
       const cId = counselor?.id || counselor?._id;
       const chatRes = await axios.get(`${API_BASE_URL}/messages/history?user1=${cId}&user2=${student._id}&requesterRole=counselor`);
       setMessages(chatRes.data);
-      if (student.analyticsAccessStatus === 'granted') {
+      const isUnlocked = student.analyticsAccessStatus === 'granted' || grantedAccessMap[student._id] || viewedStudents[student._id];
+      if (isUnlocked) {
         const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${student._id}`);
         setStudentStats(statsRes.data);
       }
     } catch (e) { console.log("Error loading student data", e); }
   };
 
-  // Fetch stats whenever analytics view is active for a student with granted access
+  // Fetch stats whenever analytics view is active for a student with granted or session-unlocked access
   useEffect(() => {
-    if (selectedStudent && view !== 'chat' && selectedStudent.analyticsAccessStatus === 'granted') {
-      const fetchStats = async () => {
-        try {
-          const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
-          setStudentStats(statsRes.data);
-        } catch (e) { console.log("Stats fetch error", e); }
-      };
-      fetchStats();
+    if (selectedStudent && view !== 'chat') {
+      const isUnlocked = selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id];
+      if (isUnlocked) {
+        const fetchStats = async () => {
+          try {
+            const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`);
+            setStudentStats(statsRes.data);
+          } catch (e) { console.log("Stats fetch error", e); }
+        };
+        fetchStats();
+      }
     }
-  }, [selectedStudent, view]);
+  }, [selectedStudent, view, grantedAccessMap, viewedStudents]);
 
   const requestAccess = async () => {
     try {
@@ -232,15 +260,19 @@ export default function App() {
            const updatedStudents = studentRes.data || [];
            setStudents(updatedStudents);
 
-           // 2. Keep selected student reference updated
+           // 2. Keep selected student reference updated & sync stats live
            if (selectedStudent) {
              const updatedSelected = updatedStudents.find(s => s._id === selectedStudent._id);
-             if (updatedSelected && updatedSelected.analyticsAccessStatus !== selectedStudent.analyticsAccessStatus) {
+             if (updatedSelected) {
+               if (updatedSelected.analyticsAccessStatus === 'granted') {
+                 markAccessAsGranted(updatedSelected._id);
+               }
                setSelectedStudent(updatedSelected);
              }
 
-             // If counselor is in analytics view and access is granted, refresh stats in real-time
-             if (view !== 'chat' && updatedSelected && updatedSelected.analyticsAccessStatus === 'granted') {
+             // If counselor is in analytics view and access is unlocked, refresh stats in real-time
+             const isUnlocked = selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id];
+             if (view !== 'chat' && isUnlocked) {
                const statsRes = await axios.get(`${API_BASE_URL}/breaks/stats?user_id=${selectedStudent._id}`).catch(() => null);
                if (statsRes && statsRes.data) {
                  setStudentStats(statsRes.data);
@@ -684,7 +716,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              ) : selectedStudent.analyticsAccessStatus === 'granted' && (view === 'stats' || (view !== 'chat' && viewedStudents[selectedStudent._id])) ? (
+              ) : (selectedStudent.analyticsAccessStatus === 'granted' || grantedAccessMap[selectedStudent._id] || viewedStudents[selectedStudent._id]) && (view === 'stats' || view !== 'chat') ? (
                 <div className="flex-1 flex flex-col min-h-0 px-10 pb-6 pt-2 space-y-6 overflow-hidden">
                   {/* Stats Grid */}
                   <div className="grid grid-cols-4 gap-5 flex-none">

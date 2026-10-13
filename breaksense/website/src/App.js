@@ -300,15 +300,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [selectedStudent, isLoggedIn, counselor, view]);
 
-           if (isInitialWebLoadRef.current) {
-             isInitialWebLoadRef.current = false;
-           }
-        } catch (e) {}
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [selectedStudent, isLoggedIn, counselor, view]);
-
   const sendMessage = async () => {
     if (!replyText.trim() || !selectedStudent) return;
     const cId = counselor?.id || counselor?._id;

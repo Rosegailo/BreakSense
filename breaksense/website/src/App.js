@@ -90,6 +90,20 @@ export default function App() {
       return updated;
     });
   };
+
+  const markAccessAsRevoked = (id) => {
+    if (!id) return;
+    setGrantedAccessMap(prev => {
+      const updated = { ...prev, [id]: false };
+      sessionStorage.setItem('grantedAccessMap', JSON.stringify(updated));
+      return updated;
+    });
+    setViewedStudents(prev => {
+      const updated = { ...prev, [id]: false };
+      sessionStorage.setItem('viewedStudents', JSON.stringify(updated));
+      return updated;
+    });
+  };
   const chatEndRef = useRef(null);
 
   // Request browser notification permission
@@ -266,6 +280,8 @@ export default function App() {
              if (updatedSelected) {
                if (updatedSelected.analyticsAccessStatus === 'granted') {
                  markAccessAsGranted(updatedSelected._id);
+               } else if (updatedSelected.analyticsAccessStatus === 'denied' || (updatedSelected.analyticsAccessStatus === 'none' && updatedSelected.dataSharingPermission === 'none')) {
+                 markAccessAsRevoked(updatedSelected._id);
                }
                setSelectedStudent(updatedSelected);
              }

@@ -1,10 +1,18 @@
+/**
+ * Break Management & Analytics Routes
+ * Handles break history retrieval, break logging, study session tracking,
+ * real-time counselor analytics calculations, and KNN ML recommendation calls.
+ */
 const express = require('express');
 const router = express.Router();
 const Break = require('../models/Break');
 const User = require('../models/User');
 const axios = require('axios');
 
-// --- HISTORY ---
+/**
+ * GET /api/breaks/history
+ * Retrieves full break activity history for a specific student sorted by date.
+ */
 router.get('/history', async (req, res) => {
     try {
         const userId = req.query.user_id;
@@ -15,7 +23,10 @@ router.get('/history', async (req, res) => {
     }
 });
 
-// --- SAVE BREAK ---
+/**
+ * POST /api/breaks/save
+ * Saves a completed break activity record with user ratings and duration.
+ */
 router.post('/save', async (req, res) => {
     try {
         const { break_type, category, duration_taken, fatigue_before, stress_before, rating, user_id, session_number } = req.body;
@@ -29,7 +40,10 @@ router.post('/save', async (req, res) => {
     }
 });
 
-// --- LOG STUDY SESSION ---
+/**
+ * POST /api/breaks/log-study
+ * Logs a completed Pomodoro study session and updates student daily study stats.
+ */
 router.post('/log-study', async (req, res) => {
     try {
         const { user_id, study_duration, clientDate } = req.body;
@@ -48,8 +62,6 @@ router.post('/log-study', async (req, res) => {
         }
         user.LastStudyDate = new Date();
 
-        // Reset analytics access status after ending a study session
-        // so the counselor can request access again for the new session
         user.analyticsAccessStatus = 'none';
         user.dataSharingPermission = 'none';
         user.permissionExpiry = null;
@@ -67,7 +79,11 @@ router.post('/log-study', async (req, res) => {
     }
 });
 
-// --- STATS ---
+/**
+ * GET /api/breaks/stats
+ * Computes live analytics metrics, category distributions, and evidence-based
+ * actionable counselor advice for a student's session history.
+ */
 router.get('/stats', async (req, res) => {
     try {
         const { user_id, date } = req.query;
@@ -160,7 +176,10 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-// --- RECOMMEND ---
+/**
+ * POST /api/breaks/recommend
+ * Dispatches fatigue/stress inputs to the KNN ML Microservice with fallback logic.
+ */
 router.post('/recommend', async (req, res) => {
     try {
         const { fatigue, stress, time } = req.body;
@@ -183,8 +202,6 @@ router.post('/recommend', async (req, res) => {
             console.log("ML Microservice offline/unreachable. Using dynamic AI rule fallback.");
         }
 
-        // --- Dynamic AI Fallback Engine ---
-        // Generates varied, tailored recommendations based on fatigue, stress, and break duration
         let breakType = 'Eye Rest 20-20-20';
         let durationMin = timeVal;
 

@@ -1,3 +1,8 @@
+/**
+ * Global System Handler Component
+ * Manages foreground system push notifications, vibration alerts, and app-wide
+ * analytics permission modals across all mobile application screens.
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,

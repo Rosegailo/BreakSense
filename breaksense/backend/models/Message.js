@@ -1,3 +1,8 @@
+/**
+ * Message Entity Schema
+ * Represents direct communication between students and counselors,
+ * including read receipts and soft deletion states per user role.
+ */
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({

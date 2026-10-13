@@ -1,3 +1,8 @@
+/**
+ * BreakSense Counselor Portal Main Application Component
+ * Manages counselor authentication, student directory navigation, real-time messaging,
+ * risk level management, and student analytics visualization dashboards.
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {

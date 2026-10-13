@@ -1,3 +1,8 @@
+/**
+ * Break Entity Schema
+ * Logs individual student break activities, focus study sessions, ratings,
+ * and fatigue/stress levels for analytics and KNN ML recommendation.
+ */
 const mongoose = require('mongoose');
 
 const breakSchema = new mongoose.Schema({

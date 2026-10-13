@@ -1,3 +1,8 @@
+/**
+ * Consultation Screen Component
+ * Facilitates direct real-time communication between the student and guidance counselor,
+ * displays active session banners, and provides controls to end sharing sessions.
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
@@ -20,13 +25,16 @@ export default function ConsultationScreen() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [counselor, setCounselor] = useState(null);
-  const [accessStatus, setAccessStatus] = useState('none'); // 'granted', 'pending', 'denied', 'none'
+  const [accessStatus, setAccessStatus] = useState('none');
+  const [isSharingActive, setIsSharingActive] = useState(false);
 
   // Message Menu State
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [menuY, setMenuY] = useState(0);
+
+  const currentUserId = user?.id || user?._id;
 
   useEffect(() => {
     fetchCounselorAndHistory();
@@ -48,20 +56,28 @@ export default function ConsultationScreen() {
   }, [counselor]);
 
   const checkInitialAccess = async () => {
-    const userId = user?.id || user?._id;
-    if (!userId) return;
+    if (!currentUserId) return;
     try {
-      const res = await axios.get(`${API_BASE_URL}/auth/profile/${userId}`);
+      const res = await axios.get(`${API_BASE_URL}/auth/profile/${currentUserId}`);
       if (res.data) {
         const me = res.data;
         const status = me.analyticsAccessStatus || 'none';
+        const permission = me.dataSharingPermission || 'none';
+
         setAccessStatus(status);
+
+        // Keep sharing session banner active while sharing permissions remain active
+        if (status === 'granted' || permission === '24hours' || permission === '7days' || permission === 'session') {
+          setIsSharingActive(true);
+        } else if (status === 'none' && permission === 'none') {
+          setIsSharingActive(false);
+        }
       }
     } catch (e) { console.log("Permission check error", e); }
   };
 
   const handleRevokeAccess = async () => {
-    const userId = user?.id || user?._id;
+    if (!currentUserId) return;
     Alert.alert(
       "End Session?",
       "Stopping the sharing session will immediately hide your analytics from the counselor.",
@@ -72,17 +88,17 @@ export default function ConsultationScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId });
+              await axios.put(`${API_BASE_URL}/auth/revoke-access`, { userId: currentUserId });
 
-              // Automated Message
               if (counselor) {
                 await axios.post(`${API_BASE_URL}/messages/send`, {
-                  senderId: userId,
+                  senderId: currentUserId,
                   recipientId: counselor._id,
                   text: `🚫 System: ANALYTICS ACCESS REMOVED BY STUDENT.`
                 });
               }
 
+              setIsSharingActive(false);
               setAccessStatus('none');
               if (counselor) loadHistory(counselor._id);
               Alert.alert("Success", "Sharing session ended.");
@@ -103,8 +119,6 @@ export default function ConsultationScreen() {
       }
     } catch (e) { console.log("Chat load error", e); }
   };
-
-  const currentUserId = user?.id || user?._id;
 
   const loadHistory = async (cId) => {
     if (!currentUserId || !cId) return;
@@ -143,7 +157,6 @@ export default function ConsultationScreen() {
   const handleLongPress = (msg, event) => {
     const { pageY } = event.nativeEvent;
     setSelectedMessage(msg);
-    // Align menu vertically with touch location
     let topPos = pageY ? pageY - 60 : 200;
     if (topPos < 80) topPos = 80;
     if (topPos > SCREEN_HEIGHT - 220) topPos = SCREEN_HEIGHT - 220;
@@ -217,7 +230,8 @@ export default function ConsultationScreen() {
         </Text>
       </View>
 
-      {user?.role === 'student' && accessStatus === 'granted' && (
+      {/* Active Session Sharing Banner & Persistent End Session Button */}
+      {user?.role === 'student' && (accessStatus === 'granted' || isSharingActive) && (
         <View style={{ backgroundColor: '#1C1F26', borderBottomWidth: 1, borderBottomColor: '#2A2E37', flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.accent, fontFamily: 'Inter-Bold', fontSize: 13 }}>Analytics Sharing Active</Text>
@@ -267,14 +281,13 @@ export default function ConsultationScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* iMessage Style Action Menu */}
+      {/* Message Options Action Menu */}
       <Modal visible={showMenu} transparent animationType="fade">
         <Pressable style={[styles.menuOverlay, { backgroundColor: 'rgba(0,0,0,0.88)' }]} onPress={() => setShowMenu(false)}>
            <View style={[styles.menuContent, { position: 'absolute', top: menuY, width: '100%', paddingHorizontal: 20 }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: selectedMessage?.sender === user?.id ? 'flex-end' : 'flex-start', gap: 12 }}>
-                 {/* Action Menu Box */}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: selectedMessage?.sender === currentUserId ? 'flex-end' : 'flex-start', gap: 12 }}>
                  <View style={[styles.actionBox, { backgroundColor: '#B0B3B8', borderColor: 'transparent', width: 150, borderRadius: 18, overflow: 'hidden' }]}>
-                    {selectedMessage?.sender === user?.id && (
+                    {selectedMessage?.sender === currentUserId && (
                       <>
                         <TouchableOpacity style={[styles.actionItem, { paddingVertical: 12 }]} onPress={startEdit}>
                            <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>Edit</Text>
@@ -291,20 +304,19 @@ export default function ConsultationScreen() {
                     </TouchableOpacity>
                  </View>
 
-                 {/* Selected Message Bubble Preview */}
                  <View style={{ maxWidth: '60%' }}>
                     <View style={[
                       styles.msgBox,
-                      selectedMessage?.sender === user?.id
+                      selectedMessage?.sender === currentUserId
                         ? { backgroundColor: colors.accent, borderBottomRightRadius: 2 }
                         : { backgroundColor: '#3A3F4B', borderBottomLeftRadius: 2 },
                       { paddingHorizontal: 16, paddingVertical: 10 }
                     ]}>
-                      <Text style={{ color: selectedMessage?.sender === user?.id ? '#000' : '#FFF', fontSize: 15, fontWeight: '500' }}>
+                      <Text style={{ color: selectedMessage?.sender === currentUserId ? '#000' : '#FFF', fontSize: 15, fontWeight: '500' }}>
                         {selectedMessage?.text}
                       </Text>
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4, alignSelf: selectedMessage?.sender === user?.id ? 'flex-end' : 'flex-start' }}>
+                    <Text style={{ color: '#64748b', fontSize: 9, marginTop: 4, alignSelf: selectedMessage?.sender === currentUserId ? 'flex-end' : 'flex-start' }}>
                        {selectedMessage?.createdAt ? new Date(selectedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </Text>
                  </View>
@@ -344,5 +356,5 @@ const styles = StyleSheet.create({
   actionBox: { backgroundColor: '#20242D', width: 220, borderRadius: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#333' },
   actionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15 },
   actionText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
-  divider: { height: 1, backgroundColor: '#333' },
+  divider: { height: 1, backgroundColor: '#333' }
 });

@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     // Data Sharing & Analytics Access Control
     dataSharingPermission: {
         type: String,
-        enum: ['none', 'session', '7days', 'analytics_only'],
+        enum: ['none', 'session', '24hours', '7days', 'analytics_only'],
         default: 'none'
     },
     permissionExpiry: { type: Date, default: null },

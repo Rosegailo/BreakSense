@@ -30,11 +30,48 @@ router.get('/history', async (req, res) => {
 router.post('/save', async (req, res) => {
     try {
         const { break_type, category, duration_taken, fatigue_before, stress_before, rating, user_id, session_number } = req.body;
+        if (!user_id) {
+            return res.status(400).json({ success: false, error: 'user_id parameter is required' });
+        }
+
         const newBreak = new Break({
-            user_id, break_type, category, duration_taken, fatigue_before, stress_before, rating, session_number
+            user_id,
+            break_type: break_type || 'Recovery Break',
+            category: category || 'Rest & Recovery',
+            duration_taken: parseInt(duration_taken || 5),
+            fatigue_before: parseInt(fatigue_before || 3),
+            stress_before: parseInt(stress_before || 2),
+            rating: parseInt(rating || 5),
+            session_number: parseInt(session_number || 1)
         });
         await newBreak.save();
-        res.status(200).json({ success: true, message: 'Break saved successfully' });
+
+        // Update student DayStreak and LastStudyDate
+        const user = await User.findById(user_id);
+        if (user) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastDate = user.LastStudyDate ? new Date(user.LastStudyDate).toISOString().split('T')[0] : null;
+
+            if (lastDate !== todayStr) {
+                if (lastDate) {
+                    const prevDate = new Date(lastDate);
+                    const currDate = new Date(todayStr);
+                    const diffTime = Math.abs(currDate - prevDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays === 1) {
+                        user.DayStreak = (user.DayStreak || 0) + 1;
+                    } else if (diffDays > 1) {
+                        user.DayStreak = 1;
+                    }
+                } else {
+                    user.DayStreak = 1;
+                }
+                user.LastStudyDate = new Date();
+                await user.save();
+            }
+        }
+
+        res.status(200).json({ success: true, message: 'Break saved successfully', breakRecord: newBreak });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -47,18 +84,36 @@ router.post('/save', async (req, res) => {
 router.post('/log-study', async (req, res) => {
     try {
         const { user_id, study_duration, clientDate } = req.body;
+        if (!user_id) {
+            return res.status(400).json({ success: false, error: 'user_id parameter is required' });
+        }
+
         const todayStr = clientDate || new Date().toISOString().split('T')[0];
+        const durationVal = parseInt(study_duration || 0);
 
         const user = await User.findById(user_id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-        const lastDate = user.LastStudyDate ? user.LastStudyDate.toISOString().split('T')[0] : null;
+        const lastDate = user.LastStudyDate ? new Date(user.LastStudyDate).toISOString().split('T')[0] : null;
         if (lastDate === todayStr) {
-            user.SessionsToday += 1;
-            user.TotalStudyTimeToday += parseInt(study_duration);
+            user.SessionsToday = (user.SessionsToday || 0) + 1;
+            user.TotalStudyTimeToday = (user.TotalStudyTimeToday || 0) + durationVal;
         } else {
+            if (lastDate) {
+                const prevDate = new Date(lastDate);
+                const currDate = new Date(todayStr);
+                const diffTime = Math.abs(currDate - prevDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays === 1) {
+                    user.DayStreak = (user.DayStreak || 0) + 1;
+                } else if (diffDays > 1) {
+                    user.DayStreak = 1;
+                }
+            } else {
+                user.DayStreak = 1;
+            }
             user.SessionsToday = 1;
-            user.TotalStudyTimeToday = parseInt(study_duration);
+            user.TotalStudyTimeToday = durationVal;
         }
         user.LastStudyDate = new Date();
 
@@ -73,11 +128,15 @@ router.post('/log-study', async (req, res) => {
         await user.save();
 
         const focusBreak = new Break({
-            user_id, break_type: 'Study Session', category: 'Focus Time', duration_taken: study_duration, rating: 5
+            user_id,
+            break_type: 'Study Session',
+            category: 'Focus Time',
+            duration_taken: durationVal,
+            rating: 5
         });
         await focusBreak.save();
 
-        res.status(200).json({ success: true });
+        res.status(200).json({ success: true, message: 'Study session logged successfully', user });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }

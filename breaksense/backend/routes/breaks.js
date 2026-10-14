@@ -62,9 +62,13 @@ router.post('/log-study', async (req, res) => {
         }
         user.LastStudyDate = new Date();
 
-        user.analyticsAccessStatus = 'none';
-        user.dataSharingPermission = 'none';
-        user.permissionExpiry = null;
+        // Only expire time-limited analytics permissions if the expiry date has passed
+        const now = new Date();
+        if (user.permissionExpiry && now > new Date(user.permissionExpiry)) {
+            user.analyticsAccessStatus = 'none';
+            user.dataSharingPermission = 'none';
+            user.permissionExpiry = null;
+        }
 
         await user.save();
 

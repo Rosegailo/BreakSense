@@ -118,8 +118,7 @@ export default function App() {
       perm === 'session' ||
       perm === '24hours' ||
       perm === '7days' ||
-      grantedAccessMap[id] ||
-      viewedStudents[id]
+      grantedAccessMap[id]
     ) {
       return true;
     }
@@ -560,10 +559,7 @@ export default function App() {
                       CONSULTATION
                     </button>
                     <button
-                      onClick={() => {
-                        markStudentAsViewed(selectedStudent._id);
-                        setView('stats');
-                      }}
+                      onClick={() => setView('stats')}
                       className={`px-6 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${view !== 'chat' ? 'bg-[#00FF88] text-black shadow-lg shadow-[#00FF8833]' : theme.textMuted}`}
                     >
                       ANALYTICS
